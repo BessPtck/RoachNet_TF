@@ -4,10 +4,6 @@
 #ifndef BASE_H
 #include "Base.h"
 #endif
-#ifndef PATTERNNODE_H
-#include "PatternNode.h"
-#endif
-
 
 class Img {
 public:

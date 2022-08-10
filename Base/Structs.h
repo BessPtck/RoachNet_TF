@@ -9,6 +9,7 @@
 class s_Node {
 public:
 	s_Node();
+	s_Node(const s_Node& other);/*this is only designed to work if the nodes are NOT owned*/
 	~s_Node();
 
 	virtual unsigned char init(int nNodes);
@@ -31,14 +32,14 @@ public:
 	float o;/*used as colset flag for hex nodes*/
 
 protected:
-
-
+	void copy(const s_Node* other);
 	int N_mem;/*lenght of nodes pointer array in memory*/
 };
 
 class s_Hex : public s_Node {
 public:
 	s_Hex();
+	s_Hex(const s_Hex& other);
 	~s_Hex();
 
 	unsigned char init();
@@ -79,6 +80,7 @@ public:
 
 	inline virtual void set(long indx, s_Node* nd) { this->nodes[indx] = nd; }
 	inline virtual s_Node* get(long indx) { return this->nodes[indx]; }
+	inline s_Node* getNd(long indx) { return this->nodes[indx]; }
 
 	s_Node** nodes;
 	long    N;
@@ -92,11 +94,15 @@ public:
 	~s_HexPlate();
 
 	virtual unsigned char init(long nNodes);
+	void                  initRs(float inRhex);
 	virtual void          release();/*assumes that the plate owns its subnodes if not NULL*/
 
 	inline void set(long indx, s_Hex* nd) { this->nodes[indx] = (s_Node*)nd; }
 	inline void set(long indx, s_Hex& nd) { this->set(indx,&nd); }
+	void setWeb(long index, int web_i, long target_i);
 	inline s_Hex* get(long indx) { return (s_Hex*)this->nodes[indx]; }
+	inline s_Hex  getCopy(long indx) { return *((s_Hex*)this->nodes[indx]); }
+	bool inHex(const long hexNode_i, const s_2pt& pt, const float padding = 0.f) const;
 
 	long height;
 	long width;
@@ -106,6 +112,7 @@ public:
 	s_2pt hexU[6];
 protected:
 	virtual void reset();
+	void genHexU_0();
 };
 class s_HexBasePlate : public s_HexPlate {
 public:
@@ -114,6 +121,9 @@ public:
 
 	unsigned char initRowStart(long rowN);
 	void          releaseRowStart();
+
+	long  N_wHex;
+	long  N_hHex;
 
 	long xyToHexi(const s_2pt& xy);
 	/*for fast scan xy to plate loc for square plate configuration*/

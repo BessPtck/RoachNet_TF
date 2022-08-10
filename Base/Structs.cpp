@@ -4,6 +4,9 @@ s_Node::s_Node():x(0.f),y(0.f),thislink(-1),nodes(NULL),N(0),o(0.f)
 {
 	;
 }
+s_Node::s_Node(const s_Node& other) {
+	copy(&other);
+}
 s_Node::~s_Node() {
 	;
 }
@@ -76,12 +79,34 @@ s_Node& s_Node::operator=(const s_Node& other) {
 	}
 	return *this;
 }
-
+void s_Node::copy(const s_Node* other) {
+	this->x = other->x;
+	this->y = other->y;
+	this->thislink = other->thislink;
+	this->N_mem = other->N_mem;
+	this->nodes = new s_Node * [this->N_mem];
+	for (int ii = 0; ii < this->N_mem; ii++)
+		this->nodes[ii] = NULL;
+	this->N = other->N;
+	for (int ii = 0; ii < this->N; ii++)
+		this->nodes[ii] = other->nodes[ii];
+	this->o = other->o;
+}
 s_Hex::s_Hex():i(-1),j(-1) {
 	for (int ii = 0; ii < 6; ii++)
 		web[ii] = NULL;
 	for (int ii = 0; ii < 3; ii++)
 		rgb[ii] = 0.f;
+}
+s_Hex::s_Hex(const s_Hex& other) {
+	s_Node* otherP = (s_Node*)&other;
+	s_Node::copy(otherP);
+	this->i = other.i;
+	this->j = other.j;
+	for (int ii = 0; ii < 6; ii++)
+		this->web[ii] = other.web[ii];
+	for (int ii = 0; ii < 3; ii++)
+		this->rgb[ii] = other.rgb[ii];
 }
 s_Hex::~s_Hex() {
 	;
@@ -211,13 +236,45 @@ s_HexPlate::~s_HexPlate() {
 	;
 }
 unsigned char s_HexPlate::init(long nNodes) {
-	reset();
+	genHexU_0();
 	return s_Plate::init(nNodes);
+}
+void s_HexPlate::initRs(float inRhex) {
+	Rhex = inRhex;
+	RShex = Rhex * sqrt(3.f) / 2.f;
+	Shex = Rhex; //equallat tri
 }
 void s_HexPlate::release() {
 	reset();
 	s_Plate::release();
 }
+void s_HexPlate::setWeb(long index, int web_i, long target_i) {
+	if (target_i >= 0)
+		((s_Hex*)nodes[index])->web[web_i] = nodes[target_i];
+	else
+		((s_Hex*)nodes[index])->web[web_i] = NULL;
+}
+bool s_HexPlate::inHex(const long hexNode_i, const s_2pt& pt, const float padding) const
+{
+	s_Hex* h = (s_Hex*)nodes[hexNode_i];
+	float xdiff = pt.x0 - h->x;
+	float ydiff = pt.x1 - h->y;
+	float diff = sqrtf(xdiff * xdiff + ydiff * ydiff);
+	if (diff > Rhex)
+		return false;
+	s_2pt vpt = { xdiff, ydiff };
+	float max_proj = 0.f;
+	for (int i = 0; i < 6; i++) {
+		float proj = vecMath::dot(vpt, hexU[i]);
+		if (proj > max_proj)
+			max_proj = proj;
+	}
+	bool inside = false;
+	if (max_proj <= (RShex + padding))
+		inside = true;
+	return inside;
+}
+
 void s_HexPlate::reset() {
 	height = 0;
 	width = 0;
@@ -227,6 +284,29 @@ void s_HexPlate::reset() {
 	for (int ii = 0; ii < 6; ii++)
 		utilStruct::zero2pt(hexU[ii]);
 	s_Plate::reset();
+}
+void s_HexPlate::genHexU_0()
+{
+	float longs = sqrtf(3.f) / 2.f;
+	float shorts = 0.5f;
+	/*start with to the right*/
+	hexU[0].x0 = 1.f;
+	hexU[0].x1 = 0.f;
+
+	hexU[1].x0 = shorts;
+	hexU[1].x1 = longs;
+
+	hexU[2].x0 = -shorts;
+	hexU[2].x1 = longs;
+
+	hexU[3].x0 = -1.f;
+	hexU[3].x1 = 0.f;
+
+	hexU[4].x0 = -shorts;
+	hexU[4].x1 = -longs;
+
+	hexU[5].x0 = shorts;
+	hexU[5].x1 = -longs;
 }
 
 s_HexBasePlate::s_HexBasePlate() :RowStart(NULL), RowStart_is(NULL), Row_N(0), Col_d(0.f), Row_d(0.f)
