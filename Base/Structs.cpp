@@ -237,7 +237,19 @@ s_HexPlate::~s_HexPlate() {
 }
 unsigned char s_HexPlate::init(long nNodes) {
 	genHexU_0();
-	return s_Plate::init(nNodes);
+	unsigned char err=s_Plate::init(nNodes);
+	if (err != ECODE_OK)
+		return err;
+	for (long ii = 0; ii < N_mem; ii++) {
+		if (nodes[ii] != NULL)
+			return ECODE_FAIL;
+		nodes[ii] = new s_Hex;
+		if (nodes[ii] == NULL)
+			return ECODE_FAIL;
+		((s_Hex*)nodes[ii])->init();
+		N++;
+	}
+	return ECODE_OK;
 }
 void s_HexPlate::initRs(float inRhex) {
 	Rhex = inRhex;
@@ -245,6 +257,16 @@ void s_HexPlate::initRs(float inRhex) {
 	Shex = Rhex; //equallat tri
 }
 void s_HexPlate::release() {
+	if (nodes != NULL) {
+		for (long ii = 0; ii < N_mem; ii++) {
+			if (nodes[ii] != NULL) {
+				((s_Hex*)nodes[ii])->release();
+				delete nodes[ii];
+			}
+			nodes[ii] = NULL;
+		}
+		N = 0;
+	}
 	reset();
 	s_Plate::release();
 }

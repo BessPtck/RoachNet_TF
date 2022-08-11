@@ -45,6 +45,10 @@ public:
 	unsigned char init();
 	void          release();
 	s_Hex& operator=(const s_Hex& other);
+	inline void setRGB(float col_rgb[]) { rgb[0] = col_rgb[0]; rgb[1] = col_rgb[1]; rgb[2] = col_rgb[2]; }
+	inline void setRGB(float col_r, float col_g, float col_b) { rgb[0] = col_r; rgb[1] = col_g; rgb[2] = col_b; }
+	inline void setColSet() { o = 1.f; }
+	inline bool colSet() { return (o > 0.5f); }
 
 	long i;
 	long j;
@@ -81,6 +85,7 @@ public:
 	inline virtual void set(long indx, s_Node* nd) { this->nodes[indx] = nd; }
 	inline virtual s_Node* get(long indx) { return this->nodes[indx]; }
 	inline s_Node* getNd(long indx) { return this->nodes[indx]; }
+	inline s_Node** getNodes() { return this->nodes; }
 
 	s_Node** nodes;
 	long    N;
@@ -93,9 +98,9 @@ public:
 	s_HexPlate();
 	~s_HexPlate();
 
-	virtual unsigned char init(long nNodes);
+	unsigned char         init(long nNodes);
 	void                  initRs(float inRhex);
-	virtual void          release();/*assumes that the plate owns its subnodes if not NULL*/
+	void                  release();/*assumes that the plate owns its subnodes if not NULL*/
 
 	inline void set(long indx, s_Hex* nd) { this->nodes[indx] = (s_Node*)nd; }
 	inline void set(long indx, s_Hex& nd) { this->set(indx,&nd); }

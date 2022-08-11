@@ -1,26 +1,139 @@
 #include "HexImg.h"
 
-unsigned char HexImg::Init(Img* img,
+unsigned char HexImg::init(Img* img,
 	s_HexBasePlate* plate,
 	float Rhex,
 	float sigmaVsR,
 	float IMaskRVsR) {
-
+	m_img = img;
+	m_p = plate;
 	m_p->initRs(Rhex);
 	m_nWH = genMeshLoc(m_p->Rhex, m_p->RShex, m_p->Shex);
 	long hex_size = (long)ceilf(2.f * m_nWH.x0 * m_nWH.x1);
 	m_p->init(hex_size);
-	//genMeshLocFromBR(m_nWH.x0, m_nWH.x1);
+	if(Err(genMesh()))
+		return ECODE_FAIL;
+	if (Err(genPlateRowStart()))
+		return ECODE_FAIL;
+	m_Convol = new ConvolHex;
+	m_Convol->init(m_img, m_p->getNodes(), m_p->Rhex, sigmaVsR, IMaskRVsR);
+	utilStruct::zero2pt(m_nWH);
+	utilStruct::zero2pt(m_BR);
+	utilStruct::zero2pt_i(m_hexMaskBL_offset);
+	m_toppixHex = 0.f;
 }
-
-unsigned char HexImg::Update(Img* img) {
+void HexImg::release() {
+	if (m_Convol != NULL) {
+		m_Convol->release();
+		delete m_Convol;
+	}
+	m_Convol = NULL;
+	if (m_p != NULL) {
+		m_p->release();
+	}
+	m_p = NULL;/* do not delete m_p since it is owned by another object*/
+	m_img = NULL;
+}
+unsigned char HexImg::update(Img* img) {
 	if (img->getWidth() != m_img->getWidth() || img->getHeight() != m_img->getHeight())
 		return ECODE_ABORT;
 	m_img = img;
+	unsigned char err;
+	return run();
+}
+unsigned char HexImg::genMesh() {
+	if(Err(genMeshLocFromBR(m_nWH.x0, m_nWH.x1)))
+		return ECODE_FAIL;
+	if (Err(genMeshWeb()))
+		return ECODE_FAIL;
 	return ECODE_OK;
 }
 
-unsigned char HexImg::genMesh() {
+#ifndef MECVISPI_WIN
+unsigned char HexImg::run()
+{
+	s_convKernVars IOVars = {
+		m_img->getImg(),
+		m_img->getHeight(),
+		m_img->getWidth(),
+		m_img->getColorMode(),
+		m_img->getMaxIndex(),
+
+		m_Convol->getMaskF(),
+		m_Convol->getIMaskBL_offset().x0,
+		m_Convol->getIMaskBL_offset().x1,
+		m_Convol->getMaskHeight(),
+		m_Convol->getMaskWidth(),
+
+		0,
+
+		m_p->N,
+		m_p->getNodes()
+	};
+	s_convKernVars IOVars1 = IOVars;
+	s_convKernVars IOVars2 = IOVars;
+	s_convKernVars IOVars3 = IOVars;
+	IOVars1.hex_index = 1;
+	IOVars2.hex_index = 2;
+	IOVars3.hex_index = 3;
+
+	pthread_t thread0;
+	pthread_t thread1;
+	pthread_t thread2;
+	pthread_t thread3;
+
+	int thread_res = 0;
+	thread_res = pthread_create(&thread0, NULL, threadedConvol::runConvThread, (void*)&IOVars);
+	thread_res = pthread_create(&thread1, NULL, threadedConvol::runConvThread, (void*)&IOVars1);
+	thread_res = pthread_create(&thread2, NULL, threadedConvol::runConvThread, (void*)&IOVars2);
+	thread_res = pthread_create(&thread3, NULL, threadedConvol::runConvThread, (void*)&IOVars3);
+	pthread_join(thread0, NULL);
+	pthread_join(thread1, NULL);
+	pthread_join(thread2, NULL);
+	pthread_join(thread3, NULL);
+
+	/*finish of any extra if the number of hexes was not divisible by 4*/
+	long num_passes = IOVars.num_Hex / THREADEDCONVOL_NUMTHREADS;
+	long num_scanned = 4 * (num_passes);
+	for (int i = num_scanned; i < m_p->N; i++) {
+		IOVars.hex_index = i;
+		threadedConvol::convCellKernel(IOVars);
+	}
+	//pthread_exit(NULL);
+	return ECODE_OK;
+}
+#else
+unsigned char HexImg::run()
+{
+	for (int i = 0; i < m_nHex; i++) {
+		m_Convol->convulToHex(i);
+	}
+	return ECODE_OK;
+}
+#endif
+s_2pt HexImg::genMeshLoc(float Rhex, float RShex, float Shex) {
+	float width = (float)m_img->getWidth();
+	float height = (float)m_img->getHeight();
+	float segLen_y = Rhex + (Shex / 2.f);
+	float segLen_x = RShex * 2.f;
+	float nW = floorf(width / segLen_x);
+	float nH = floorf(height / segLen_y);
+	nH--;
+	s_2pt nWnH = { -1.f, -1.f };
+	if (nW < 1.f || nH < 1.f)
+		return nWnH;
+	float w_margin = width - nW * segLen_x;
+	w_margin /= 2.f;
+	float h_margin = height - nH * segLen_y;
+	h_margin /= 2.f;
+
+	m_BR.x0 = w_margin + RShex;
+	m_BR.x1 = h_margin + Rhex;
+	nWnH.x0 = nW;
+	nWnH.x1 = nH;
+	return nWnH;
+}
+unsigned char HexImg::genMeshWeb() {
 	if (m_p->N_wHex < 2)
 		return ECODE_FAIL;
 	/*rotate counterclockwise starting from full right pos x*/
@@ -76,31 +189,6 @@ unsigned char HexImg::genMesh() {
 	}
 	return ECODE_OK;
 }
-s_2pt HexImg::genMeshLoc(float Rhex, float RShex, float Shex) {
-	float width = (float)m_img->getWidth();
-	float height = (float)m_img->getHeight();
-	float segLen_y = Rhex + (Shex / 2.f);
-	float segLen_x = RShex * 2.f;
-	float nW = floorf(width / segLen_x);
-	float nH = floorf(height / segLen_y);
-	nH--;
-	s_2pt nWnH = { -1.f, -1.f };
-	if (nW < 1.f || nH < 1.f)
-		return nWnH;
-	float w_margin = width - nW * segLen_x;
-	w_margin /= 2.f;
-	float h_margin = height - nH * segLen_y;
-	h_margin /= 2.f;
-
-	m_BR.x0 = w_margin + RShex;
-	m_BR.x1 = h_margin + Rhex;
-	nWnH.x0 = nW;
-	nWnH.x1 = nH;
-	return nWnH;
-}
-unsigned char HexImg::genMeshWeb() {
-
-}
 unsigned char HexImg::genMeshLocFromBR(float nW, float nH) {
 	float Rhex = m_p->Rhex;
 	float RShex = m_p->RShex;
@@ -151,4 +239,7 @@ unsigned char HexImg::genMeshLocFromBR(float nW, float nH) {
 	m_p->N += n_w_full * n_h;
 	m_p->N_hHex += n_h;
 	return ECODE_OK;
+}
+unsigned char HexImg::genPlateRowStart() {
+
 }

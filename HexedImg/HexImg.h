@@ -12,7 +12,7 @@ public:
 	HexImg();
 	~HexImg();
 
-	virtual unsigned char Init(
+	virtual unsigned char init(
 		Img* img,
 		s_HexBasePlate* plate,
 		float Rhex = 9.f,//7.f,//3.f,//5.f, //3.f,  7 for debug of eye
@@ -20,10 +20,10 @@ public:
 		float IMaskRVsR = 1.5f
 	);
 
-	virtual unsigned char Update(Img* img);/*image must have same dimensions as original*/
+	virtual unsigned char update(Img* img);/*image must have same dimensions as original*/
 
-	virtual unsigned char Run();
-	virtual void Release();
+	virtual unsigned char run();
+	virtual void release();
 	inline Img* getImg() { return m_img; }
 
 	inline int getNHex() { return m_p->N; }
@@ -59,6 +59,7 @@ protected:
 	unsigned char genMeshLocFromBR(float nW, float nH);
 	/****                  ***/
 	/***************************************************************/
+	unsigned char genPlateRowStart();
 };
 
 #endif

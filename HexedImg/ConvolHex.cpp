@@ -11,7 +11,7 @@ ConvolHex::~ConvolHex()
 {
 	;
 }
-unsigned char ConvolHex::Init(Img* img, s_hex hex[], float Rhex, float sigmaVsR, float IMaskRVsR)
+unsigned char ConvolHex::init(Img* img, s_Node* hex[], float Rhex, float sigmaVsR, float IMaskRVsR)
 {
 	m_img = img;
 	m_hex = hex;
@@ -22,7 +22,7 @@ unsigned char ConvolHex::Init(Img* img, s_hex hex[], float Rhex, float sigmaVsR,
 	genIMask();
 	return ECODE_OK;
 }
-void ConvolHex::Release()
+void ConvolHex::release()
 {
 	if (m_IMask != NULL) {
 		m_IMask->release();
@@ -90,11 +90,11 @@ float ConvolHex::calcGaussian(s_2pt& pt)
 unsigned char ConvolHex::convulMaskToHex(int col_i)
 {
 	/*not the fastest convul*/
-	s_hex hx = m_hex[col_i];
-	if (hx.i < 0 || hx.j < 0)
+	s_Hex* hx = (s_Hex*)m_hex[col_i];
+	if (hx->i < 0 || hx->j < 0)
 		return ECODE_ABORT;
-	long i_start = hx.i - m_IMaskBL_offset.x0;
-	long j_start = hx.j - m_IMaskBL_offset.x1;
+	long i_start = hx->i - m_IMaskBL_offset.x0;
+	long j_start = hx->j - m_IMaskBL_offset.x1;
 	long i_big = i_start;
 	long j_big = j_start;
 	float r_ = 0.f;
@@ -136,11 +136,8 @@ unsigned char ConvolHex::convulMaskToHex(int col_i)
 		g_ = 255.f;
 	if (b_ >= 255.f)
 		b_ = 255.f;
-	m_hex[col_i].rgb[0] = r_;
-	m_hex[col_i].rgb[1] = g_;
-	m_hex[col_i].rgb[2] = b_;
-
-	m_hex[col_i].colSet = true;
+	((s_Hex*)m_hex[col_i])->setRGB(r_, g_, b_);
+	((s_Hex*)m_hex[col_i])->setColSet();
 
 	return ECODE_OK;
 }
@@ -179,8 +176,8 @@ namespace threadedConvol {
 	return NULL;
   }
   void convCellKernel(s_convKernVars IOVars) {
-    long hex_i = IOVars.outHex[IOVars.hex_index].i;
-    long hex_j = IOVars.outHex[IOVars.hex_index].j;
+    long hex_i = ((s_Hex*)IOVars.outHex[IOVars.hex_index])->i;
+    long hex_j = ((s_Hex*)IOVars.outHex[IOVars.hex_index])->j;
     if (hex_i < 0 || hex_j < 0)
       return;
     long i_start = hex_i - IOVars.MaskBL_offsetX;
@@ -222,11 +219,8 @@ namespace threadedConvol {
       b_ /= cnt;
     }
     
-    IOVars.outHex[IOVars.hex_index].rgb[0] = r_;
-    IOVars.outHex[IOVars.hex_index].rgb[1] = g_;
-    IOVars.outHex[IOVars.hex_index].rgb[2] = b_;
-
-    IOVars.outHex[IOVars.hex_index].colSet = true;
+	((s_Hex*)IOVars.outHex[IOVars.hex_index])->setRGB(r_, g_, b_);
+	((s_Hex*)IOVars.outHex[IOVars.hex_index])->setColSet();
     
     return;
   }

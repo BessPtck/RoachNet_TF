@@ -14,8 +14,8 @@ class ConvolHex {
 public:
 	ConvolHex();
 	~ConvolHex();
-	unsigned char Init(Img* img, s_hex hex[], float Rhex, float sigmaVsR, float IMaskRVsR);
-	void Release();
+	unsigned char init(Img* img, s_Node* hex[], float Rhex, float sigmaVsR, float IMaskRVsR);
+	void release();
 	unsigned char convulToHex(int col_i);
 
 	inline s_2pt_i& getIMaskBL_offset() { return m_IMaskBL_offset; }
@@ -25,7 +25,7 @@ public:
 protected:
 	/*not owned*/
 	Img*   m_img;
-	s_hex* m_hex;
+	s_Node** m_hex;
 	/*owned*/
 	/*integration to fill hex with col, convulution*/
 	Img* m_IMask;
@@ -76,7 +76,7 @@ struct s_convKernVars {
 	long hex_index;
 
 	long num_Hex;
-	s_hex* outHex;
+	s_Node** outHex;
 };
 namespace threadedConvol {
 #ifndef MECVISPI_WIN
