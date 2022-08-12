@@ -6,7 +6,7 @@
 #include "Base.h"
 #endif
 
-class s_Node {
+class s_Node {/*prob 44 bytes*/
 public:
 	s_Node();
 	s_Node(const s_Node& other);/*this is only designed to work if the nodes are NOT owned*/
@@ -22,12 +22,12 @@ public:
 										   the size of nodes in memory must be equal for 
 										   the node pointers to be copied */
 
-	float x;
+	float x; /* prob 64 bit*/
 	float y;
 
-	long thislink;
-	s_Node** nodes;/*lower nodes*/
-	int N;
+	long thislink; /* prob 64 bit*/
+	s_Node** nodes;/*lower nodes*//* prob 64 bit*/
+	int N; /* prob 32 bit */
 
 	float o;/*used as colset flag for hex nodes*/
 
@@ -119,6 +119,10 @@ protected:
 	virtual void reset();
 	void genHexU_0();
 };
+namespace n_HexPlate {
+	s_Hex* rotateCLK(const s_Hex* hexNode, const int start_web_i);
+	s_Hex* rotateCCLK(const s_Hex* hexNode, const int start_web_i);
+}
 class s_HexBasePlate : public s_HexPlate {
 public:
 	s_HexBasePlate();

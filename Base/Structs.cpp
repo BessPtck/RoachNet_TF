@@ -332,6 +332,41 @@ void s_HexPlate::genHexU_0()
 	hexU[5].x0 = shorts;
 	hexU[5].x1 = -longs;
 }
+s_Hex* n_HexPlate::rotateCLK(const s_Hex* hexNode, const int start_web_i) {
+	int web_i = -1;
+	s_Hex* ndPtr = NULL;
+	bool found = false;
+	/*rotate at end to swap back*/
+	for (int i = 0; i < 3; i++) {
+		web_i = start_web_i - i;
+		if (web_i < 0)
+			web_i += 6;
+		ndPtr = (s_Hex*)hexNode->web[web_i];
+		if (ndPtr != NULL) {
+			found = true;
+			break;
+		}
+	}
+	return ndPtr;
+}
+s_Hex* n_HexPlate::rotateCCLK(const s_Hex* hexNode, const int start_web_i) {
+	int web_i = -1;
+	s_Hex* ndPtr = NULL;
+	bool found = false;
+	/*rotate at end to swap back*/
+	for (int i = 0; i < 3; i++) {
+		web_i = start_web_i + i;
+		/*only values for strt i will be 0 and 3 so don't need a check for >=6*/
+		if (web_i < 0)
+			web_i += 6;
+		ndPtr = (s_Hex*)hexNode->web[web_i];
+		if (ndPtr != NULL) {
+			found = true;
+			break;
+		}
+	}
+	return ndPtr;
+}
 
 s_HexBasePlate::s_HexBasePlate() :RowStart(NULL), RowStart_is(NULL), Row_N(0), Col_d(0.f), Row_d(0.f)
 {
