@@ -60,6 +60,7 @@ protected:
 	/****                  ***/
 	/***************************************************************/
 	unsigned char genPlateRowStart();
+	void          releasePlateRowStart();
 };
 
 #endif

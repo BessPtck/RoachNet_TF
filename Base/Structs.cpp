@@ -112,6 +112,8 @@ s_Hex::~s_Hex() {
 	;
 }
 unsigned char s_Hex::init() {
+	x = -1.f;
+	y = -1.f;
 	i = -1;
 	j = -1;
 	o = -1.f;

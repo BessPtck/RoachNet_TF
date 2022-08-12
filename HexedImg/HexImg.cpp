@@ -1,5 +1,15 @@
 #include "HexImg.h"
 
+HexImg::HexImg() :m_img(NULL), m_p(NULL), m_Convol(NULL), m_toppixHex(0.f)
+{
+	utilStruct::zero2pt(m_nWH);
+	utilStruct::zero2pt(m_BR);
+	utilStruct::zero2pt_i(m_hexMaskBL_offset);
+}
+HexImg::~HexImg() {
+	;
+}
+
 unsigned char HexImg::init(Img* img,
 	s_HexBasePlate* plate,
 	float Rhex,
@@ -29,6 +39,7 @@ void HexImg::release() {
 	}
 	m_Convol = NULL;
 	if (m_p != NULL) {
+		releasePlateRowStart();
 		m_p->release();
 	}
 	m_p = NULL;/* do not delete m_p since it is owned by another object*/
@@ -241,5 +252,33 @@ unsigned char HexImg::genMeshLocFromBR(float nW, float nH) {
 	return ECODE_OK;
 }
 unsigned char HexImg::genPlateRowStart() {
-
+	m_p->Row_N = 0;
+	m_p->Row_d = 3.f * m_p->Rhex / 2.f;
+	m_p->Col_d = 2.f * m_p->RShex;
+	for (long i = 0; i < m_p->N; i++) {
+		s_Hex* hex = m_p->get(i);
+		if (hex->web[3] == NULL && hex->x >= 0) {/* at the end of each row is an extra hex that is not connected or filled*/
+			(m_p->Row_N)++;
+		}
+	}
+	m_p->initRowStart(m_p->Row_N);
+	long rowCnt = 0;
+	for (long i = 0; i < m_p->N; i++) {
+		s_Hex* hex = m_p->get(i);
+		if (hex->web[3] == NULL && hex->x >= 0) {
+			m_p->RowStart[rowCnt].x0 = hex->x;
+			m_p->RowStart[rowCnt].x1 = hex->y;
+			m_p->RowStart_is[rowCnt].x0 = i;
+			m_p->RowStart_is[rowCnt].x1 = 0;
+			s_Hex* endCandHex = m_p->get(i + m_p->RowStart_is[rowCnt].x1);
+			while (endCandHex->web[0] != NULL) {
+				(m_p->RowStart_is[rowCnt].x1) += 1;
+			};
+			rowCnt++;
+		}
+	}
+	return ECODE_OK;
+}
+void HexImg::releasePlateRowStart() {
+	m_p->releaseRowStart();
 }

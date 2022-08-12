@@ -12,7 +12,9 @@
 class HexPlates : public Base{
 public:
 protected:
-	s_HexPlate* m_pImg;/*lowest plate the one that HexImg generates*/
+	/*owned*/
+	s_HexBasePlate* m_pImg;/*lowest plate the one that HexImg generates */
+	
 };
 
 #endif
