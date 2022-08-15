@@ -8,8 +8,8 @@
 
 class s_HexEye {
 public:
-	s_HexEye::s_HexEye();
-	s_HexEye::s_HexEye();
+	s_HexEye();
+	s_HexEye();
 
 	unsigned char init(int NumLev);
 	void          release();
@@ -24,7 +24,7 @@ public:
 	inline float RS() { if (N > 0) { return lev[0]->RShex; } return 0.f; }
 	inline s_2pt* hexU() { if (N > 0) { return lev[0]->hexU; } return NULL; }
 
-	s_HexPlate** lev;
+	s_HexPlate** lev;/*s_HexPlates here are owned by the s_HexEye*/
 	int N;
 
 	long width;
@@ -53,5 +53,23 @@ public:
 	unsigned char spawn(s_HexEye* neye);/*spawn and put the results in neye*/
 	void          despawn(s_HexEye* neye);/*cleans up eye*/
 protected:
+	/*dimensions of eyes this HexEye will initiate*/
+	float m_r;
+	float m_R;/*largest R*/
+	int   m_N_levels;
+	int   m_N_lowestNodePtrs;
+
+
+	long m_imgWidth;
+	long m_imgHeight;
+	/*                                            */
+	unsigned char initEye(s_HexEye* neye);
+	void          releaseEye(s_HexEye* neye);
+	/*helpers to init Eye */
+	long numHexInLevel(long N_prev, int N_level);
+	float sizeOfLevel(int N_level);
+	/*                    */
+
+	unsigned char genEye(s_HexEye* neye);
 };
 #endif
