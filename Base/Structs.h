@@ -120,8 +120,15 @@ protected:
 	void genHexU_0();
 };
 namespace n_HexPlate {
-	s_Hex* rotateCLK(const s_Hex* hexNode, const int start_web_i);
-	s_Hex* rotateCCLK(const s_Hex* hexNode, const int start_web_i);
+	int rotateCLK(const s_Hex* hexNode, const int start_web_i);
+	int rotateCCLK(const s_Hex* hexNode, const int start_web_i);
+	s_Hex* connLineStackedPlates(s_Hex* nd_hi, s_Hex* nd_lo, int next_web_i);/* puts the low nodes in a line along the direction
+																			    determined by nex_web_i into nodes[0] of the hexes of the hi plate
+																				returns last hi node at the end of the line of hi nodes */
+	int turnCornerStackedPlates(s_Hex** nd_hi, s_Hex** nd_lo, int fwd_web_i, int rev_web_i);/* turns around a corner for at the end of a
+																						     line in a web linked hex mesh
+																							 returns the new direction and fills
+																							 the hi/low node ptrs with next pair of hexes*/
 }
 class s_HexBasePlate : public s_HexPlate {
 public:

@@ -1,4 +1,43 @@
 #include "HexEye.h"
+unsigned char n_HexEye::imgRoot(s_HexEye* eye, s_HexBasePlate* pImg, long center_i) {
+	/*assume that center_i is inside of hex map*/
+	s_HexPlate* bottom_lev = eye->getBottom();
+	//s_fNode* ehx = levels[m_N_levels - 1].m_fhex;
+	//s_fNode* fhx = lowHexes.m_fhex;
+
+	int next_web_i = 3;
+	s_Hex* eye_nd = bottom_lev->get(0);/* zero is the center of the plate node */
+	s_Hex* plt_nd = pImg->get(center_i);
+	bool fullRoot = true;
+	do {
+		eye_nd = n_HexPlate::connLineStackedPlates(eye_nd, plt_nd, next_web_i);
+		if (eye_nd != NULL)
+			next_web_i = n_HexPlate::turnCornerStackedPlates(&eye_nd, &plt_nd, 3, 0);/*this resets the eye_nd pointer and plt_nd pointer to the next line*/
+		else {
+			next_web_i = -2;
+			break;
+		}
+	} while (next_web_i >= 0);
+	if (next_web_i < -1)
+		fullRoot = false;
+
+	next_web_i = 0;
+	eye_nd = bottom_lev->get(0);
+	plt_nd = pImg->get(center_i);
+	do {
+		eye_nd = n_HexPlate::connLineStackedPlates(eye_nd, plt_nd, next_web_i);
+		if (eye_nd != NULL)
+			n_HexPlate::turnCornerStackedPlates(&eye_nd, &plt_nd, 0, 3);
+		else {
+			next_web_i = -2;
+			break;
+		}
+	} while (next_web_i >= 0);
+
+	if (next_web_i < -1 || !fullRoot)
+		return ECODE_ABORT;
+	return ECODE_OK;
+}
 
 unsigned char s_HexEye::init(int NumLev) {
 	if (lev != NULL)
@@ -150,33 +189,61 @@ void HexEye::genLowerPattern(s_Node* lev_nds[], float Rs, s_2pt& loc, s_2pt_i ne
 	indx is the index of the current center in its level
 	*/
 	// lhxs=m_levels[m_N_levels].m_hexes;
-	lhxs[indx].x = loc.x0;
-	lhxs[indx].y = loc.x1;
-	lhxs[indx].thislink = indx;
+	s_Hex* lev_node = (s_Hex*)lev_nds[indx];
+	lev_node->x = loc.x0;
+	lev_node->y = loc.x1;
+	lev_node->thislink = indx;
 	int cindx = indx;
 	for (int i = 0; i < 6; i++) {
-		int nebLev_i = getNebLevIndex(nebi, num_neb, i);
+		int nebLev_i = getNebLevIndex(neb, num_neb, i);
 		int oplink = Math::loop(i + 3, 6);
 		if (nebLev_i >= 0) {
 			/*this neighbor is alredy generated*/
-			lhxs[nebLev_i].web[oplink] = &(lhxs[cindx]);
-			lhxs[cindx].web[i] = &(lhxs[nebLev_i]);
+			s_Hex* neb_lev_node = (s_Hex*)lev_nds[nebLev_i];
+			neb_lev_node->web[oplink] = (s_Node*)lev_node;
+			lev_node->web[i] = (s_Node*)neb_lev_node;
 		}
 		else {/*only fill if these have not previously been filled*/
 			indx++;/*add new hex*/
-			lhxs[indx].x = m_hexU[i].x0 * Rs + loc.x0;
-			lhxs[indx].y = m_hexU[i].x1 * Rs + loc.x1;
-			lhxs[indx].thislink = indx;
+			s_Hex* rot_lev_node = (s_Hex*)lev_nds[indx];
+			rot_lev_node->x = m_hexU[i].x0 * Rs + loc.x0;
+			rot_lev_node->y = m_hexU[i].x1 * Rs + loc.x1;
+			rot_lev_node->thislink = indx;
 
-			lhxs[indx].web[oplink] = &(lhxs[cindx]);
-			lhxs[cindx].web[i] = &(lhxs[indx]);
+			rot_lev_node->web[oplink] = (s_Node*)lev_node;
+			lev_node->web[i] = (s_Node*)rot_lev_node;
 		}
 	}
-	weaveRound(lhxs[cindx]);
+	weaveRound(lev_node);
 	for (int i = 0; i < 6; i++) {
-		int nebLev_i = getNebLevIndex(nebi, num_neb, i);
-		if (nebLev_i >= 0)
-			weaveRound(lhxs[nebLev_i]);
+		int nebLev_i = getNebLevIndex(neb, num_neb, i);
+		if (nebLev_i >= 0) {
+			s_Hex* neb_lev_node = (s_Hex*)lev_nds[nebLev_i];
+			weaveRound(neb_lev_node);
+		}
 	}
-	return ECODE_OK;
+	return;
+}
+int HexEye::getNebLevIndex(s_2pt_i neb[], int num_neb, int& web_i) {
+	int indxFound = foundInAr(neb, num_neb, web_i);
+	if (indxFound < 0)
+		return -1;
+	return neb[indxFound].x1;
+}
+void HexEye::weaveRound(s_Hex* nd) {
+	for (int i = 0; i < 6; i++) {
+		s_Hex* prev_nd = (s_Hex*)nd->web[Math::loop(i - 1, 6)];
+		s_Hex* cur_nd = (s_Hex*)nd->web[i];
+		s_Hex* next_nd = (s_Hex*)nd->web[Math::loop(i + 1, 6)];
+		cur_nd->web[Math::loop(4 + i, 6)] = prev_nd;
+		cur_nd->web[Math::loop(2 + i, 6)] = next_nd;
+	}
+	return;
+}
+int HexEye::foundInAr(s_2pt_i ar[], int n, int val) {
+	for (int i = 0; i < n; i++) {
+		if (ar[i].x0 == val)
+			return i;
+	}
+	return -1;
 }

@@ -332,7 +332,7 @@ void s_HexPlate::genHexU_0()
 	hexU[5].x0 = shorts;
 	hexU[5].x1 = -longs;
 }
-s_Hex* n_HexPlate::rotateCLK(const s_Hex* hexNode, const int start_web_i) {
+int n_HexPlate::rotateCLK(const s_Hex* hexNode, const int start_web_i) {
 	int web_i = -1;
 	s_Hex* ndPtr = NULL;
 	bool found = false;
@@ -347,9 +347,9 @@ s_Hex* n_HexPlate::rotateCLK(const s_Hex* hexNode, const int start_web_i) {
 			break;
 		}
 	}
-	return ndPtr;
+	return found ? web_i : -1;
 }
-s_Hex* n_HexPlate::rotateCCLK(const s_Hex* hexNode, const int start_web_i) {
+int n_HexPlate::rotateCCLK(const s_Hex* hexNode, const int start_web_i) {
 	int web_i = -1;
 	s_Hex* ndPtr = NULL;
 	bool found = false;
@@ -365,7 +365,46 @@ s_Hex* n_HexPlate::rotateCCLK(const s_Hex* hexNode, const int start_web_i) {
 			break;
 		}
 	}
-	return ndPtr;
+	return found ? web_i : -1;
+}
+s_Hex* n_HexPlate::connLineStackedPlates(s_Hex* nd_hi, s_Hex* nd_lo, int next_web_i) {
+	int hex_i = -1;
+	s_Hex* hi_hex = NULL;
+	s_Hex* lo_hex = NULL;
+	s_Hex* next_hi = nd_hi;
+	s_Hex* next_lo = nd_lo;
+	do {
+		hi_hex = next_hi;
+		lo_hex = next_lo;
+		hi_hex->nodes[0] = lo_hex;
+		hi_hex->N = 1;
+		/*advance*/
+		next_hi = (s_Hex*)hi_hex->web[next_web_i];
+		next_lo = (s_Hex*)lo_hex->web[next_web_i];
+	} while (next_hi != NULL && next_lo != NULL);
+	if (next_hi != NULL && next_lo == NULL)
+		return NULL;
+	return hi_hex;
+}
+int n_HexPlate::turnCornerStackedPlates(s_Hex** nd_hi, s_Hex** nd_lo, int fwd_web_i, int rev_web_i) {
+	int next_web_i = -1;
+	if (next_web_i == fwd_web_i) {
+		next_web_i = rotateCLK(*nd_hi, fwd_web_i);
+		if (next_web_i>=0) {
+			*nd_hi = (s_Hex*)(*nd_hi)->web[next_web_i];
+			*nd_lo = (s_Hex*)(*nd_lo)->web[next_web_i];
+			next_web_i = ((*nd_lo) != NULL) ? 0 : -2;
+		}
+	}
+	if (next_web_i == rev_web_i) {
+		next_web_i = rotateCCLK(*nd_hi, rev_web_i);
+		if (next_web_i >= 0) {
+			*nd_hi = (s_Hex*)(*nd_hi)->web[next_web_i];
+			*nd_lo = (s_Hex*)(*nd_lo)->web[next_web_i];
+			next_web_i = ((*nd_lo) != NULL) ? 3 : -2;
+		}
+	}
+	return next_web_i;
 }
 
 s_HexBasePlate::s_HexBasePlate() :RowStart(NULL), RowStart_is(NULL), Row_N(0), Col_d(0.f), Row_d(0.f)

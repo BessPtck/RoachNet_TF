@@ -17,6 +17,7 @@ public:
 	void          release();
 
 	inline s_HexPlate* get(int nLev) { return lev[nLev]; }
+	inline s_HexPlate* getBottom() { return lev[N - 1]; }
 	inline void set(int nLev, s_HexPlate* pLev) { lev[nLev] = pLev; }
 	inline bool append(s_HexPlate* pLev) { if (N < N_mem) { lev[N] = pLev; N++; return true; } return false; }
 
@@ -36,7 +37,7 @@ protected:
 };
 
 namespace n_HexEye{
-	void imgRoot(s_HexEye* eye, s_HexBasePlate* pImg, long center_i);/*roots on img, the hexEye should be one level above the img*/
+	unsigned char imgRoot(s_HexEye* eye, s_HexBasePlate* pImg, long center_i);/*roots on img, the hexEye should be one level above the img*/
 	bool check_imgRoot(s_HexEye* eye, s_HexBasePlate* pImg);/*checks if the geometry is correct for the hex eye to root onthe img*/
 
 	void platesRoot(s_HexEye* eye, s_HexPlate* plates[], long center_i);/*assumes geometry of lowest layer of eye is the same as geometry of plates
@@ -60,6 +61,7 @@ protected:
 	float m_R;/*largest R*/
 	int   m_N_levels;
 	int   m_N_lowestNodePtrs;
+	s_2pt m_hexU[6];
 
 
 	long m_imgWidth;
@@ -73,9 +75,13 @@ protected:
 	/*                    */
 
 	unsigned char genEye(s_HexEye* neye);
-	/*helpers to genEye*/
+	/*helpers to genEye              */
 	int collectNebIndexes(s_HexPlate* lev, int i_top, s_2pt_i neb[]);
 	void genLowerPattern(s_Node* lev_nds[], float Rs, s_2pt& loc, s_2pt_i neb[], int num_neb, int& indx);
-	/*                 */
+	/*** helpers to genEye helpers ***/
+	int getNebLevIndex(s_2pt_i neb[], int num_neb, int& web_i);
+	void weaveRound(s_Hex* nd);
+	int foundInAr(s_2pt_i ar[], int n, int val);
+	/*                               */
 };
 #endif
