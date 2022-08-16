@@ -6,6 +6,8 @@
 #include "../Base/Structs.h"
 #endif
 
+#define HEXEYE_MAXNEBINDXS 6 
+
 class s_HexEye {
 public:
 	s_HexEye();
@@ -71,5 +73,9 @@ protected:
 	/*                    */
 
 	unsigned char genEye(s_HexEye* neye);
+	/*helpers to genEye*/
+	int collectNebIndexes(s_HexPlate* lev, int i_top, s_2pt_i neb[]);
+	void genLowerPattern(s_Node* lev_nds[], float Rs, s_2pt& loc, s_2pt_i neb[], int num_neb, int& indx);
+	/*                 */
 };
 #endif

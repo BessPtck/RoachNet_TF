@@ -18,6 +18,22 @@ namespace Math {
 			finali += n;
 		return finali;
 	}
+	float powerXseries(float x, int n) {
+		if (n == 0)
+			return 1.f;
+		/* 1+x+x^2 + .. x^n = S
+		   xS=1+x+x^2+x^3+...x^(n+1) - 1
+		   xS=S+x^(n+1)-1
+		   xS-S = x^(n+1)-1
+		   S=(x^(n+1)-1)/x-1 */
+		float X_N1 = power(x, (n + 1));
+		float X_N1_1 = X_N1 - 1.f;
+		float X_1 = x - 1.f;
+		if (X_1 == 0.f) {
+			return 1.f + ((float)n);
+		}
+		return X_N1_1 / X_1;
+	}
 	float power(float x, int y) {
 		float res = 1.f;
 		for (int i = 0; i < y; i++)

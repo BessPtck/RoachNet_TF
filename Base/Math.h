@@ -43,6 +43,7 @@ namespace Math {
 	}/* derivitave of tanhf with respect to x is 1-tanhf^2(x)*/
 	int loop(int i, int n);
 	float power(float x, int y);
+	float powerXseries(float x, int n);/* computes 1+x+x^2+..x^n */
 	float Gaussian(float pt, float norm_const, float center = 0.f);
 	float GaussianOneMax(float pt, float norm_const);
 	float GaussianFast(float pt, float sqrt2_ExpConst, float Norm, float center);
