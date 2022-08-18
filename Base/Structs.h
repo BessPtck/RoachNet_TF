@@ -21,6 +21,7 @@ public:
 	virtual s_Node& operator=(const s_Node& other);/*the node pointers from nodes are copied but not owned by the copy
 										   the size of nodes in memory must be equal for 
 										   the node pointers to be copied */
+	inline int getNmem() { return N_mem; }
 
 	float x; /* prob 64 bit*/
 	float y;
@@ -129,7 +130,9 @@ namespace n_HexPlate {
 																						     line in a web linked hex mesh
 																							 returns the new direction and fills
 																							 the hi/low node ptrs with next pair of hexes*/
+	long xyToHexi(const s_2pt& xy);
 }
+
 class s_HexBasePlate : public s_HexPlate {
 public:
 	s_HexBasePlate();
@@ -141,7 +144,7 @@ public:
 	long  N_wHex;
 	long  N_hHex;
 
-	long xyToHexi(const s_2pt& xy);
+
 	/*for fast scan xy to plate loc for square plate configuration*/
 	s_2pt* RowStart; /*xy position of the first hex in each row*/
 	s_2pt_i* RowStart_is;/* index in the hex array of the row start, and number in row*/

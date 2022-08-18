@@ -7,6 +7,7 @@
 #endif
 
 #define HEXEYE_MAXNEBINDXS 6 
+#define HEXEYE_RDIFFTOL 0.0001f
 
 class s_HexEye {
 public:
@@ -40,9 +41,10 @@ namespace n_HexEye{
 	unsigned char imgRoot(s_HexEye* eye, s_HexBasePlate* pImg, long center_i);/*roots on img, the hexEye should be one level above the img*/
 	bool check_imgRoot(s_HexEye* eye, s_HexBasePlate* pImg);/*checks if the geometry is correct for the hex eye to root onthe img*/
 
-	void platesRoot(s_HexEye* eye, s_HexPlate* plates[], long center_i);/*assumes geometry of lowest layer of eye is the same as geometry of plates
-														                  and that the plates all have the same geometry */
-	bool check_platesRoot(s_HexEye* eye, s_HexPlate* plates[]);/* check that the geometry is good here for a root*/
+	void platesRootL2(s_HexEye* eye, s_HexPlate* plates[], long center_i);/*assumes geometry of lowest layer of eye is the same as geometry of plates
+														                  and that the plates all have the same geometry 
+																		  and the eye has only 2 levels */
+	bool check_platesRootL2(s_HexEye* eye, s_HexPlate* plates[], int num_plates);/* check that the geometry is good here for a root*/
 }
 
 class HexEye : public Base {

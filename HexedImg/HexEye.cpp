@@ -2,8 +2,6 @@
 unsigned char n_HexEye::imgRoot(s_HexEye* eye, s_HexBasePlate* pImg, long center_i) {
 	/*assume that center_i is inside of hex map*/
 	s_HexPlate* bottom_lev = eye->getBottom();
-	//s_fNode* ehx = levels[m_N_levels - 1].m_fhex;
-	//s_fNode* fhx = lowHexes.m_fhex;
 
 	int next_web_i = 3;
 	s_Hex* eye_nd = bottom_lev->get(0);/* zero is the center of the plate node */
@@ -37,6 +35,68 @@ unsigned char n_HexEye::imgRoot(s_HexEye* eye, s_HexBasePlate* pImg, long center
 	if (next_web_i < -1 || !fullRoot)
 		return ECODE_ABORT;
 	return ECODE_OK;
+}
+bool n_HexEye::check_imgRoot(s_HexEye* eye, s_HexBasePlate* pImg) {
+	if (eye == NULL || pImg==NULL)
+		return false;
+	if (eye->N < 1)
+		return false;
+	if (pImg->N < 1)
+		return false;
+	s_HexPlate* bottom_lev = eye->getBottom();
+	float eye_RDiff = HEXEYE_RDIFFTOL * bottom_lev->Rhex;
+	float eye_Rmax = eye_RDiff + bottom_lev->Rhex;
+	float eye_Rmin = bottom_lev->Rhex - eye_RDiff;
+	if (pImg->Rhex > eye_Rmax || pImg->Rhex < eye_Rmin)
+		return false;
+	return true;
+}
+void n_HexEye::platesRootL2(s_HexEye* eye, s_HexPlate* plates[], long center_i) 
+{
+	s_HexPlate* bottom_lev = eye->getBottom();
+	int N = bottom_lev->nodes[0]->getNmem();
+	s_Hex* eye_center_hex = bottom_lev->get(0);
+	for (int i = 0; i < N; i++) {
+		s_Hex* plate_center_node = plates[i]->get(center_i);
+		eye_center_hex->nodes[i] = (s_Node*)plate_center_node;
+		for (int i_web = 0; i_web < 6; i_web++) {
+			s_Hex* eye_web_node = (s_Hex*)eye_center_hex->web[i_web];
+			s_Node* plate_web_node = plate_center_node->web[i_web];
+			eye_web_node->nodes[i] = plate_web_node;
+		}
+	}
+	for (int i = 0; i < bottom_lev->N; i++) {
+		if (bottom_lev->nodes[i]->nodes[0] != NULL)
+			bottom_lev->nodes[i]->N = N;
+		else
+			bottom_lev->nodes[i]->N = 0;
+	}
+}
+bool n_HexEye::check_platesRootL2(s_HexEye* eye, s_HexPlate* plates[], int num_plates) {
+	if (eye == NULL || plates == NULL)
+		return false;
+	if (num_plates < 1)
+		return false;
+	if (eye->N != 2)
+		return false;
+	s_HexPlate* bottom_lev = eye->getBottom();
+	if (bottom_lev == NULL)
+		return false;
+	if (bottom_lev->N < 1)
+		return false;
+	int N = bottom_lev->nodes[0]->getNmem();
+	if (N != num_plates)
+		return false;
+	long size_plate = plates[0]->N;
+	if (size_plate < 1)
+		return false;
+	for (int i_plate = 0; i_plate < N; i_plate++) {
+		if (plates[i_plate] == NULL)
+			return false;
+		if (plates[i_plate]->N != size_plate)
+			return false;
+	}
+	return true;
 }
 
 unsigned char s_HexEye::init(int NumLev) {
