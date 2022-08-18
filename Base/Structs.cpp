@@ -309,7 +309,10 @@ void s_HexPlate::reset() {
 		utilStruct::zero2pt(hexU[ii]);
 	s_Plate::reset();
 }
-void s_HexPlate::genHexU_0()
+void s_HexPlate::genHexU_0() {
+	n_HexPlate::genHexU_0(hexU);
+}
+void n_HexPlate::genHexU_0(s_2pt hexU[])
 {
 	float longs = sqrtf(3.f) / 2.f;
 	float shorts = 0.5f;
@@ -444,4 +447,34 @@ void s_HexBasePlate::releaseRowStart() {
 void s_HexBasePlate::reset() {
 	Col_d = 0.f;
 	Row_d = 0.f;
+}
+unsigned char s_nPlate::init(long nNodes, int nLowerNodes) {
+	if ((s_Plate::init(nNodes))!=ECODE_OK) return ECODE_FAIL;
+	for (long ii = 0; ii < N_mem; ii++) {
+		if (nodes[ii] != NULL)
+			return ECODE_FAIL;
+		nodes[ii] = new s_nNode;
+		if (nodes[ii] == NULL)
+			return ECODE_FAIL;
+		((s_nNode*)nodes[ii])->init(nLowerNodes);
+		N++;
+	}
+	return ECODE_OK;
+}
+unsigned char s_nPlate::init(s_HexPlate* hex_plate, int nLowerNodes) {
+	long N_nodes = hex_plate->N;
+	if (N_nodes < 1)
+		return ECODE_ABORT;
+	unsigned char err = init(N_nodes, nLowerNodes);
+	if (err != ECODE_OK) return err;
+	err = setHexes(hex_plate);
+	return err;
+}
+unsigned char s_nPlate::setHexes(s_HexPlate* hex_plate) {
+	if (N != hex_plate->N)
+		return ECODE_ABORT;
+	for (long ii = 0; ii < N; ii++) {
+		((s_nNode*)nodes[ii])->hex = (s_Hex*)hex_plate->nodes[ii];
+	}
+	return ECODE_OK;
 }

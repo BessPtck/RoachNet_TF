@@ -40,11 +40,8 @@ protected:
 namespace n_HexEye{
 	unsigned char imgRoot(s_HexEye* eye, s_HexBasePlate* pImg, long center_i);/*roots on img, the hexEye should be one level above the img*/
 	bool check_imgRoot(s_HexEye* eye, s_HexBasePlate* pImg);/*checks if the geometry is correct for the hex eye to root onthe img*/
-
-	void platesRootL2(s_HexEye* eye, s_HexPlate* plates[], long center_i);/*assumes geometry of lowest layer of eye is the same as geometry of plates
-														                  and that the plates all have the same geometry 
-																		  and the eye has only 2 levels */
-	bool check_platesRootL2(s_HexEye* eye, s_HexPlate* plates[], int num_plates);/* check that the geometry is good here for a root*/
+	unsigned char imgRootL2(s_HexEye* eye, s_HexBasePlate* pImg, long center_i);/*roots on the image plate, requires the eye to have only 2 levels*/
+	bool check_imgRootL2(s_HexEye* eye, s_HexBasePlate* pImg);
 }
 
 class HexEye : public Base {
@@ -52,7 +49,7 @@ public:
 	HexEye();
 	~HexEye();
 
-	unsigned char init(float r, int NLevels, int N_lowestNodePtrs = 1);
+	unsigned char init(float r, int NLevels);
 	void          release();
 
 	unsigned char spawn(s_HexEye* neye);/*spawn and put the results in neye*/
@@ -62,7 +59,6 @@ protected:
 	float m_r;
 	float m_R;/*largest R*/
 	int   m_N_levels;
-	int   m_N_lowestNodePtrs;
 	s_2pt m_hexU[6];
 
 

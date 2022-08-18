@@ -94,6 +94,7 @@ protected:
 	long N_mem;
 	virtual void reset();
 };
+
 class s_HexPlate : public s_Plate{
 public:
 	s_HexPlate();
@@ -121,6 +122,7 @@ protected:
 	void genHexU_0();
 };
 namespace n_HexPlate {
+	void genHexU_0(s_2pt hexU[]);
 	int rotateCLK(const s_Hex* hexNode, const int start_web_i);
 	int rotateCCLK(const s_Hex* hexNode, const int start_web_i);
 	s_Hex* connLineStackedPlates(s_Hex* nd_hi, s_Hex* nd_lo, int next_web_i);/* puts the low nodes in a line along the direction
@@ -130,7 +132,7 @@ namespace n_HexPlate {
 																						     line in a web linked hex mesh
 																							 returns the new direction and fills
 																							 the hi/low node ptrs with next pair of hexes*/
-	long xyToHexi(const s_2pt& xy);
+	//long xyToHexi(const s_2pt& xy);
 }
 
 class s_HexBasePlate : public s_HexPlate {
@@ -161,4 +163,20 @@ class s_HexPlateLayer {
 protected:
 	int N_mem;
 };
+class s_nPlate : public s_Plate {
+public:
+	s_nPlate() {;}
+	~s_nPlate() { ; }
+	unsigned char init(long nNodes, int nLowerNodes);/*Initializes the plate with nodes it owns */
+	unsigned char init(s_HexPlate* hex_plate, int nLowerNodes);/*initializes a plate with the dimensions of the hex plate
+															  and with the nodes set to the hex plate nodes
+															  nodes of this plate are owned by this plate */
+	/*release is same as for s_Plate, since s_Plate releases and deletes non-null nodes*/
+
+	unsigned char setHexes(s_HexPlate* hex_plate);/*requires hex plate to have the same dimensions as this plate,
+												  sets all nNodes of this plate to the hex nodes of the hex plate*/
+	inline void set(long indx, s_nNode* nd) { this->nodes[indx] = (s_nNode*)nd; }
+	inline s_nNode* get(long indx) { return (s_nNode*)this->nodes[indx]; }
+};
+
 #endif

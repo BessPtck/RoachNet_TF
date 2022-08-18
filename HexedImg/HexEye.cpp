@@ -1,4 +1,30 @@
 #include "HexEye.h"
+s_HexEye::s_HexEye() :lev(NULL), N(0), width(0L), height(0L), N_mem(0) {
+	;
+}
+s_HexEye::s_HexEye() {
+	;
+}
+unsigned char s_HexEye::init(int NumLev) {
+	if (lev != NULL)
+		return ECODE_ABORT;
+	lev = new s_HexPlate * [NumLev];
+	if (lev == NULL)
+		return ECODE_FAIL;
+	N_mem = NumLev;
+	for (int ii = 0; ii < N_mem; ii++)
+		lev[ii] = NULL;
+	N = 0;
+}
+void s_HexEye::release() {
+	if (lev != NULL) {
+		delete[] lev;
+	}
+	lev = NULL;
+	N = 0;
+	N_mem = 0;
+}
+
 unsigned char n_HexEye::imgRoot(s_HexEye* eye, s_HexBasePlate* pImg, long center_i) {
 	/*assume that center_i is inside of hex map*/
 	s_HexPlate* bottom_lev = eye->getBottom();
@@ -36,6 +62,7 @@ unsigned char n_HexEye::imgRoot(s_HexEye* eye, s_HexBasePlate* pImg, long center
 		return ECODE_ABORT;
 	return ECODE_OK;
 }
+
 bool n_HexEye::check_imgRoot(s_HexEye* eye, s_HexBasePlate* pImg) {
 	if (eye == NULL || pImg==NULL)
 		return false;
@@ -51,76 +78,55 @@ bool n_HexEye::check_imgRoot(s_HexEye* eye, s_HexBasePlate* pImg) {
 		return false;
 	return true;
 }
-void n_HexEye::platesRootL2(s_HexEye* eye, s_HexPlate* plates[], long center_i) 
-{
+unsigned char n_HexEye::imgRootL2(s_HexEye* eye, s_HexBasePlate* pImg, long center_i) {
+	/*assume that center_i is inside of hex map*/
 	s_HexPlate* bottom_lev = eye->getBottom();
-	int N = bottom_lev->nodes[0]->getNmem();
-	s_Hex* eye_center_hex = bottom_lev->get(0);
-	for (int i = 0; i < N; i++) {
-		s_Hex* plate_center_node = plates[i]->get(center_i);
-		eye_center_hex->nodes[i] = (s_Node*)plate_center_node;
-		for (int i_web = 0; i_web < 6; i_web++) {
-			s_Hex* eye_web_node = (s_Hex*)eye_center_hex->web[i_web];
-			s_Node* plate_web_node = plate_center_node->web[i_web];
-			eye_web_node->nodes[i] = plate_web_node;
-		}
+
+	s_Hex* eye_nd = bottom_lev->get(0);/* zero is the center of the plate node */
+	s_Hex* plt_nd = pImg->get(center_i);
+	bool fullRoot = true;
+	/*connect the middle node of the eye to the plate node*/
+	eye_nd->nodes[0] = (s_Node*)plt_nd;
+	/*there should be 7 lower nodes, and the middle lower node should be connected by the web to the rest*/
+	/*go around the middle node*/
+	for (int i = 0; i < 6; i++) {
+		s_Node* eye_web_nd = eye_nd->web[i];
+		s_Node* plt_web_nd = plt_nd->web[i];
+		eye_web_nd->nodes[0] = plt_web_nd;
+		if (plt_web_nd == NULL) fullRoot = false;
 	}
-	for (int i = 0; i < bottom_lev->N; i++) {
-		if (bottom_lev->nodes[i]->nodes[0] != NULL)
-			bottom_lev->nodes[i]->N = N;
-		else
-			bottom_lev->nodes[i]->N = 0;
-	}
+	if (!fullRoot) return ECODE_ABORT;
+	return ECODE_OK;
 }
-bool n_HexEye::check_platesRootL2(s_HexEye* eye, s_HexPlate* plates[], int num_plates) {
-	if (eye == NULL || plates == NULL)
-		return false;
-	if (num_plates < 1)
+bool n_HexEye::check_imgRootL2(s_HexEye* eye, s_HexBasePlate* pImg) {
+	if (!check_imgRoot(eye, pImg))
 		return false;
 	if (eye->N != 2)
 		return false;
-	s_HexPlate* bottom_lev = eye->getBottom();
-	if (bottom_lev == NULL)
-		return false;
-	if (bottom_lev->N < 1)
-		return false;
-	int N = bottom_lev->nodes[0]->getNmem();
-	if (N != num_plates)
-		return false;
-	long size_plate = plates[0]->N;
-	if (size_plate < 1)
-		return false;
-	for (int i_plate = 0; i_plate < N; i_plate++) {
-		if (plates[i_plate] == NULL)
-			return false;
-		if (plates[i_plate]->N != size_plate)
-			return false;
-	}
-	return true;
 }
 
-unsigned char s_HexEye::init(int NumLev) {
-	if (lev != NULL)
-		return ECODE_ABORT;
-	lev = new s_HexPlate * [NumLev];
-	if (lev == NULL)
-		return ECODE_FAIL;
-	N_mem = NumLev;
-	for (int ii = 0; ii < N_mem; ii++)
-		lev[ii] = NULL;
-	N = 0;
+HexEye::HexEye() :m_r(0.f), m_R(0.f), m_N_levels(-1), m_imgWidth(0L), m_imgHeight(0L) {
+	for(int i=0; i<6; i++)
+		utilStruct::zero2pt(m_hexU[i]);
 }
-void s_HexEye::release() {
-	if (lev != NULL) {
-		delete[] lev;
-	}
-	lev = NULL;
-	N = 0;
-	N_mem = 0;
+HexEye::~HexEye() {
+	;
 }
-unsigned char HexEye::init(float r, int NLevels, int n_lowestNodePtrs) {
-	/*figure out what largest R is r*2^N_level */
-
+unsigned char HexEye::init(float r, int NLevels) {
+	if (r < 1.f) return ECODE_ABORT;
+	if (NLevels < 1) return ECODE_ABORT;
+	m_r = r;
+	m_R = r * Math::power(2.f, (NLevels - 1)); /*figure out what largest R is r*2^(N_level-1) */
+	m_N_levels = NLevels;
+	n_HexPlate::genHexU_0(m_hexU);
+	m_imgWidth = 0L;
+	m_imgHeight = 0L;
+	return ECODE_OK;
+}
+void HexEye::release() {
+	m_N_levels = -1;
+	m_R = 0.f;
+	m_r = 0.f;
 }
 
 unsigned char HexEye::initEye(s_HexEye* neye) {
