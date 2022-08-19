@@ -167,6 +167,7 @@ class s_nPlate : public s_Plate {
 public:
 	s_nPlate() {;}
 	~s_nPlate() { ; }
+	unsigned char init(long nNodes) { return s_Plate::init(nNodes); }
 	unsigned char init(long nNodes, int nLowerNodes);/*Initializes the plate with nodes it owns */
 	unsigned char init(s_HexPlate* hex_plate, int nLowerNodes);/*initializes a plate with the dimensions of the hex plate
 															  and with the nodes set to the hex plate nodes

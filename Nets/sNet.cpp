@@ -1,4 +1,66 @@
 #include "sNet.h"
+unsigned char s_Net::init(int nLev) {
+	lev = new s_nPlate * [nLev];
+	if (lev == NULL)
+		return ECODE_FAIL;
+	N_mem = nLev;
+	return ECODE_OK;
+}
+void s_Net::release() {
+	if (lev != NULL) {
+		for (int ii = 0; ii < N_mem; ii++) {
+			if (lev[ii] != NULL) {
+				lev[ii]->release();
+				delete lev[ii];
+			}
+			lev[ii] = NULL;
+		}
+		delete[] lev;
+	}
+	lev = NULL;
+	N_mem = 0;
+	N = 0;
+}
+unsigned char sNet::initNet(s_Net* sn, int nLev, int numLevNodes[]) {
+	if (sn == NULL)
+		return ECODE_ABORT;
+	if (Err(sn->init(nLev)))
+		return ECODE_FAIL;
+	for (int ii = 0; ii < nLev; ii++) {
+		unsigned char err = sn->lev[ii]->init((long)numLevNodes[ii], numLevNodes[ii + 1]);
+		if (Err(err))
+			return err;
+	}
+	return ECODE_OK;
+}
+unsigned char sNet::initNetLuna(s_Net* sn, s_HexEye* eye) {
+	if (sn == NULL || eye == NULL)
+		return ECODE_ABORT;
+	int num_eye_lev = eye->N;
+	if (num_eye_lev < 1)
+		return ECODE_ABORT;
+	if (Err(sn->init(num_eye_lev)))
+		return ECODE_FAIL;
+	(sn->N) = 0;
+	for (int ii = 0; ii < (num_eye_lev-1); ii++) {
+		unsigned char err = sn->lev[ii]->init(eye->lev[ii], eye->lev[ii+1]->N);
+		if (Err(err))
+			return err;
+		(sn->N)++;
+	}
+
+	unsigned char err = sn->lev[(num_eye_lev - 1)]->init(eye->getBottom()->N);
+	if (Err(err))
+		return err;
+	(sn->N)++;
+	for (int ii = 0; ii < eye->getBottom()->N; ii++) {
+		s_nNode* net_node = sn->getBottom()->get(ii);
+		s_Hex* eye_node = eye->getBottom()->get(ii);
+		net_node->hex = eye_node;
+	}
+
+	return err;
+}
 /*
 void n_HexEye::platesRootL2(s_HexEye* eye, s_HexPlate* plates[], long center_i)
 {
