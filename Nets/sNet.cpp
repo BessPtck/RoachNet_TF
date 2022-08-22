@@ -4,6 +4,8 @@ unsigned char s_Net::init(int nLev) {
 	if (lev == NULL)
 		return ECODE_FAIL;
 	N_mem = nLev;
+	N = 0;
+	eye = NULL;
 	return ECODE_OK;
 }
 void s_Net::release() {
@@ -33,7 +35,7 @@ unsigned char sNet::initNet(s_Net* sn, int nLev, int numLevNodes[]) {
 	}
 	return ECODE_OK;
 }
-unsigned char sNet::initNetLuna(s_Net* sn, s_HexEye* eye) {
+unsigned char sNet::initNet(s_Net* sn, s_HexEye* eye, int numPlates) {
 	if (sn == NULL || eye == NULL)
 		return ECODE_ABORT;
 	int num_eye_lev = eye->N;
@@ -49,17 +51,94 @@ unsigned char sNet::initNetLuna(s_Net* sn, s_HexEye* eye) {
 		(sn->N)++;
 	}
 
-	unsigned char err = sn->lev[(num_eye_lev - 1)]->init(eye->getBottom()->N);
+	/*structure of bottom matches eye and top corresponds to highest center of eye
+	  however the structure in between may not correspond exactly to the 
+	  geometry of the eye */
+	unsigned char err = sn->lev[(num_eye_lev - 1)]->init(eye->getBottom()->N, numPlates);
 	if (Err(err))
 		return err;
 	(sn->N)++;
+	/*connect bottom plate to eye*/
 	for (int ii = 0; ii < eye->getBottom()->N; ii++) {
 		s_nNode* net_node = sn->getBottom()->get(ii);
 		s_Hex* eye_node = eye->getBottom()->get(ii);
 		net_node->hex = eye_node;
 	}
+	/*connect top plate/node to eye */
+	s_nNode* net_top_node = sn->lev[0]->get(0);
+	s_Hex* eye_top_node = eye->lev[0]->get(0);
+	net_top_node->hex = eye_top_node;
 
-	return err;
+	sn->eye = eye;
+	/*connect all layers in net to themselves*/
+	return connDownNet(sn);
+}
+unsigned char sNet::initLuna(s_Net* sn, s_HexEye* eye, int numColPlates) {
+	if (sn == NULL || eye == NULL)
+		return ECODE_FAIL;
+	int num_lev = eye->N;
+	if (num_lev != NUM_LUNA_EYE_LEVELS)
+		return ECODE_ABORT;
+	int* numLevNodes = new int[num_lev + 1];
+	if (numLevNodes == NULL)
+		return ECODE_FAIL;
+	for (int i = 0; i < num_lev; i++) {
+		numLevNodes[i] = eye->lev[i]->N;
+	}
+	numLevNodes[num_lev] = numColPlates;
+	unsigned char err = initNet(sn, num_lev, numLevNodes);
+	if (Err(err))
+		return err;
+	/*assumes luna has 2 levels*/
+	/*connect the top net to the bottom net*/
+	s_Hex* luna_top_node = eye->lev[0]->get(0);
+	s_nNode* net_top_node = sn->lev[0]->get(0);
+	net_top_node->hex = luna_top_node;
+	if (luna_top_node->N != (int)eye->lev[0]->N)
+		return ECODE_FAIL;
+	/*connect the bottom layer of the net directly to the hexes according to the hex indexes
+	   so that the hex indexes match the net indexes*/
+	for (long i_lower = 0; i_lower < eye->lev[0]->N; i_lower++) {
+		s_Hex* luna_node = eye->getBottom()->get(i_lower);
+		s_nNode* net_node = sn->getBottom()->get(i_lower);
+		net_node->hex = luna_node;
+		/*the hanging node will also point to the same bottom hex node*/
+		net_node->nodes[0] = (s_Node*)luna_node;
+	}
+	/*connect the hanging nodes so that the order of the hanging nodes in the net
+	  is the same as the order of the hanging nodes from the top level of the eye*/
+	for (int hanging_i = 0; hanging_i < luna_top_node->N; hanging_i++) {
+		s_Node* luna_node = luna_top_node->nodes[hanging_i];
+		s_Node* net_node = sn->getBottom()->get(luna_node->thislink);
+		net_top_node->nodes[hanging_i] = net_node;
+	}
+	sn->eye = eye;
+	return ECODE_OK;
+}
+void sNet::releaseNet(s_Net* sn) {
+	if(sn!=NULL)
+		sn->release();/*if lev pointers are not null they are released here*/
+}
+unsigned char sNet::connDownNet(s_Net* sn) {
+	int num_net_lev = sn->N;
+	if (num_net_lev < 1)
+		return ECODE_ABORT;
+	for (int ii = 0; ii < (num_net_lev - 1); ii++) {
+		int num_low_lev_nodes = (int)sn->lev[ii+1]->N;
+		int num_lev_nodes = (int)sn->lev[ii]->N;
+		for (int i_nd = 0; i_nd < num_lev_nodes; i_nd++) {
+			s_nNode* nd = sn->lev[ii]->get(i_nd);
+			int num_hanging = nd->getNmem();
+			if (num_hanging != num_low_lev_nodes)
+				return ECODE_FAIL;
+			for (int i_hanging = 0; i_hanging < num_hanging; i_hanging++) {
+				s_Node* hanging_nd = sn->lev[ii + 1]->getNd(i_hanging);
+				nd->nodes[i_hanging] = hanging_nd;
+			}
+			nd->N = num_hanging;
+		}
+	}
+	return ECODE_OK;
 }
 /*
 void n_HexEye::platesRootL2(s_HexEye* eye, s_HexPlate* plates[], long center_i)

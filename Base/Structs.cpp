@@ -13,8 +13,10 @@ s_Node::~s_Node() {
 unsigned char s_Node::init(int nNodes) {
 	if (nodes != NULL)
 		return ECODE_ABORT;
-	if (nNodes < 1)
-		return ECODE_ABORT;
+	if (nNodes < 1) {
+		N = 0;
+		return ECODE_OK;
+	}
 	nodes = new s_Node * [nNodes];
 	if (nodes == NULL)
 		return ECODE_FAIL;

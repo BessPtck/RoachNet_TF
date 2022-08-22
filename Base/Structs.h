@@ -50,6 +50,7 @@ public:
 	inline void setRGB(float col_r, float col_g, float col_b) { rgb[0] = col_r; rgb[1] = col_g; rgb[2] = col_b; }
 	inline void setColSet() { o = 1.f; }
 	inline bool colSet() { return (o > 0.5f); }
+	inline s_Hex* getHanging(int indx) { return (s_Hex*)nodes[indx]; }
 
 	long i;
 	long j;
@@ -176,7 +177,8 @@ public:
 
 	unsigned char setHexes(s_HexPlate* hex_plate);/*requires hex plate to have the same dimensions as this plate,
 												  sets all nNodes of this plate to the hex nodes of the hex plate*/
-	inline void set(long indx, s_nNode* nd) { this->nodes[indx] = (s_nNode*)nd; }
+	inline void set(long indx, s_nNode* nd) { this->nodes[indx] = (s_Node*)nd; }
+	inline void set(int indx, s_nNode* nd) { this->nodes[indx] = (s_Node*)nd; }
 	inline s_nNode* get(long indx) { return (s_nNode*)this->nodes[indx]; }
 };
 
