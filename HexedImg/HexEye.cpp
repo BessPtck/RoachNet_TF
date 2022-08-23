@@ -16,6 +16,29 @@ unsigned char s_HexEye::init(int NumLev) {
 		lev[ii] = NULL;
 	N = 0;
 }
+unsigned char s_HexEye::init(const s_HexEye& other) {
+	unsigned char err = init(other.N_mem);
+	if (err != ECODE_OK)
+		return err;
+	this->N = other.N;
+	this->width = other.width;
+	this->height = other.height;
+	for (int ii = 0; ii < N; ii++) {
+		if (lev[ii] != NULL)
+			err=lev[ii]->init(other.lev[ii]);
+		if (err != ECODE_OK)
+			return err;
+	}
+	if (N < 2)
+		return ECODE_OK;
+	/* now fix intra plate links */
+	for (int ii = 0; ii < (N - 1); ii++) {
+		s_Plate* topLev = this->lev[ii];
+		s_Plate* lowLev = this->lev[ii + 1];
+		n_Plate::fixStackedPlateLinks(topLev, lowLev);
+	}
+	return ECODE_OK;
+}
 void s_HexEye::release() {
 	if (lev != NULL) {
 		delete[] lev;

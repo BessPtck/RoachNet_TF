@@ -1,11 +1,38 @@
 #include "sNet.h"
 unsigned char s_Net::init(int nLev) {
+	if (nLev < 1)
+		return ECODE_ABORT;
 	lev = new s_nPlate * [nLev];
 	if (lev == NULL)
 		return ECODE_FAIL;
 	N_mem = nLev;
 	N = 0;
 	eye = NULL;
+	return ECODE_OK;
+}
+unsigned char s_Net::init(const s_Net& other) {
+	unsigned char err = init(other.N_mem);
+	if (err != ECODE_OK)
+		return err;
+	this->eye = other.eye;
+	this->N = other.N;
+	for (int ii = 0; ii < N; ii++) {
+		s_nPlate* other_lev = other.lev[ii];
+		if (other_lev != NULL) {
+			this->lev[ii] = new s_nPlate;
+			if ((this->lev[ii]) == NULL)
+				return ECODE_FAIL;
+			err = this->lev[ii]->init(other_lev);
+			if (err != ECODE_OK)
+				return err;
+		}
+	}
+	/* fix intra-plate links */
+	for (int ii = 0; ii < (N - 1); ii++) {
+		s_Plate* topLev = this->lev[ii];
+		s_Plate* lowLev = this->lev[ii + 1];
+		n_Plate::fixStackedPlateLinks(topLev, lowLev);
+	}
 	return ECODE_OK;
 }
 void s_Net::release() {
@@ -23,6 +50,7 @@ void s_Net::release() {
 	N_mem = 0;
 	N = 0;
 }
+
 unsigned char sNet::initNet(s_Net* sn, int nLev, int numLevNodes[]) {
 	if (sn == NULL)
 		return ECODE_ABORT;

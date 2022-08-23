@@ -13,6 +13,7 @@ public:
 	~s_Node();
 
 	virtual unsigned char init(int nNodes);
+	virtual unsigned char init(const s_Node* other);
 	virtual void release();
 	unsigned char genSubNodes();
 	void          releaseSubNodes();
@@ -33,7 +34,7 @@ public:
 	float o;/*used as colset flag for hex nodes*/
 
 protected:
-	void copy(const s_Node* other);
+	virtual void copy(const s_Node* other);
 	int N_mem;/*lenght of nodes pointer array in memory*/
 };
 
@@ -43,7 +44,8 @@ public:
 	s_Hex(const s_Hex& other);
 	~s_Hex();
 
-	unsigned char init();
+	unsigned char init(long plate_index);
+	unsigned char init(const s_Hex* other);
 	void          release();
 	s_Hex& operator=(const s_Hex& other);
 	inline void setRGB(float col_rgb[]) { rgb[0] = col_rgb[0]; rgb[1] = col_rgb[1]; rgb[2] = col_rgb[2]; }
@@ -58,6 +60,8 @@ public:
 	s_Node*  web[6];/*web will always be initialized to 6 pointers*/
 
 	float rgb[3];
+private:
+	void copy(const s_Hex* other);
 };
 
 class s_nNode : public s_Node {/*nnet node*/
@@ -66,6 +70,7 @@ public:
 	~s_nNode();
 
 	unsigned char init(int nNodes);
+	unsigned char init(const s_nNode* other);
 	void          release();
 	void          reset();
 	s_nNode& operator=(const s_nNode& other);
@@ -74,6 +79,8 @@ public:
 
 	float* w;/*w will have the length of nodes, N */
 	float b;
+private:
+	void copy(const s_nNode* other);
 };
 
 class s_Plate {
@@ -82,10 +89,12 @@ public:
 	~s_Plate();
 
 	virtual unsigned char init(long nNodes);
+	virtual unsigned char init(const s_Plate* other);
 	virtual void          release();/*assumes that the plate owns its subnodes if not NULL*/
 
 	inline virtual void set(long indx, s_Node* nd) { this->nodes[indx] = nd; }
 	inline virtual s_Node* get(long indx) { return this->nodes[indx]; }
+	inline virtual s_Node* getConst(long indx) const { return this->nodes[indx]; }
 	inline s_Node* getNd(long indx) { return this->nodes[indx]; }
 	inline s_Node** getNodes() { return this->nodes; }
 
@@ -96,12 +105,17 @@ protected:
 	virtual void reset();
 };
 
+namespace n_Plate {
+	unsigned char fixStackedPlateLinks(s_Plate* topP, s_Plate* botP);
+}
+
 class s_HexPlate : public s_Plate{
 public:
 	s_HexPlate();
 	~s_HexPlate();
 
 	unsigned char         init(long nNodes);
+	unsigned char         init(const s_HexPlate* other);
 	void                  initRs(float inRhex);
 	void                  release();/*assumes that the plate owns its subnodes if not NULL*/
 
@@ -109,6 +123,7 @@ public:
 	inline void set(long indx, s_Hex& nd) { this->set(indx,&nd); }
 	void setWeb(long index, int web_i, long target_i);
 	inline s_Hex* get(long indx) { return (s_Hex*)this->nodes[indx]; }
+	inline s_Hex* getConst(long indx) const { return (s_Hex*)this->nodes[indx]; }
 	inline s_Hex  getCopy(long indx) { return *((s_Hex*)this->nodes[indx]); }
 	bool inHex(const long hexNode_i, const s_2pt& pt, const float padding = 0.f) const;
 
@@ -170,6 +185,7 @@ public:
 	~s_nPlate() { ; }
 	unsigned char init(long nNodes) { return s_Plate::init(nNodes); }
 	unsigned char init(long nNodes, int nLowerNodes);/*Initializes the plate with nodes it owns */
+	unsigned char init(const s_nPlate* other);
 	unsigned char init(s_HexPlate* hex_plate, int nLowerNodes);/*initializes a plate with the dimensions of the hex plate
 															  and with the nodes set to the hex plate nodes
 															  nodes of this plate are owned by this plate */
@@ -180,6 +196,9 @@ public:
 	inline void set(long indx, s_nNode* nd) { this->nodes[indx] = (s_Node*)nd; }
 	inline void set(int indx, s_nNode* nd) { this->nodes[indx] = (s_Node*)nd; }
 	inline s_nNode* get(long indx) { return (s_nNode*)this->nodes[indx]; }
+	inline s_nNode* getConst(long indx) const { return (s_nNode*)this->nodes[indx]; }
+private:
+	int num_hanging;
 };
 
 #endif

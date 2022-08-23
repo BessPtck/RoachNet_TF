@@ -15,6 +15,7 @@ public:
 	s_HexEye();
 
 	unsigned char init(int NumLev);
+	unsigned char init(const s_HexEye& other);
 	void          release();
 
 	inline s_HexPlate* get(int nLev) { return lev[nLev]; }

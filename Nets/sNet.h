@@ -15,6 +15,7 @@ public:
 	~s_Net();
 
 	unsigned char init(int nLev);/*initializes the array does not own the levels */
+	unsigned char init(const s_Net& other);/*assumes that if the lev pointer is non-null the copy should own the lev*/
 	void          release();/*assumes that if lev ptr is not null it is owned*/
 
 	inline s_nPlate* getBottom() { return lev[N - 1]; }
