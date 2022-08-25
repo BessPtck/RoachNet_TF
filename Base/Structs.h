@@ -173,12 +173,6 @@ protected:
 	void reset();
 };
 
-class s_HexPlateLayer {
-	s_HexPlate** p;
-	int N;
-protected:
-	int N_mem;
-};
 class s_nPlate : public s_Plate {
 public:
 	s_nPlate() {;}
@@ -201,4 +195,16 @@ private:
 	int num_hanging;
 };
 
+class s_HexPlateLayer {
+public:
+	virtual inline s_HexPlate* get(int indx) { return p[indx]; }
+	s_HexPlate** p;
+	int N;
+protected:
+	int N_mem;
+};
+class s_HexBasePlateLayer : public s_HexPlateLayer {
+public:
+	inline s_HexBasePlate* get(int indx) { return (s_HexBasePlate*)p[indx]; }
+};
 #endif

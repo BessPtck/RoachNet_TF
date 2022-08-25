@@ -27,6 +27,25 @@ protected:
 	int N_mem;
 };
 
+class s_CNnets {/*cluster of CNNs that read from the same geometric location
+				  the geometric location is where the eye is rooted
+				  the nets each find a specific pattern they are programed for, the number of pats the nets find is the number of nets
+				  each net typically has it's hanging nodes root on multiple plates*/
+public:
+	virtual unsigned char init(int nNets);/*initializes the net array does not fill pointers or own anything*/
+	virtual unsigned char init(const s_CNnets& other);/*assumes that if pointers to nets(but not eye) are non-null the objects are owned and should be copied to owned objects*/
+	virtual void          release();/*assumes that if the net pointers are non-null they are owned by this object (does not assuem ownership of eye)*/
+	s_Net** net;/*considered owned if non-null when released*/
+	s_HexEye* eye;/*not considered owned by this object but may be owned in some iherited classes*/
+	int N;/* number of nets actually pointing to something */
+
+	s_nNode* trigger_node;/*this node is setup to link to all the lowest plates,
+						   if the plates do not pass the threshold value
+						   of this node this net cluster will not try to root the eye or seed */
+protected:
+	int N_mem;
+};
+
 class sNet : public Base { /* class that generates the s_Net structs 'structure' net */
 public:
 	sNet();
