@@ -18,10 +18,10 @@ public:
 protected:
 };
 namespace n_Luna {
-	long rootEye(s_Luna& lun, s_HexBasePlate& basePlate, long plate_index);/*roots the hex eye in the luna pattern on this location of the base plate
+	bool rootEye(s_Luna& lun, s_HexBasePlate& basePlate, long plate_index);/*roots the hex eye in the luna pattern on this location of the base plate
 										                                   the base plate will have the exact same dimensions as all  of the col plates
 																		   and the luna plates above
-																		   returns index of hex in lunaPlates to fill or -1 if luna is too close to the edge*/
+																		   returns true if rooted successfully*/
 
 	void run(s_Luna& lun, s_HexBasePlateLayer& colPlates, s_HexBasePlateLayer& lunPlates);/*runs luna at whatever location the heyEye in the luna is currently rooted*/
 	//void check_run(s_Luna& lun, s_HexBasePlateLayer& colPlates, s_HexBasePlateLayer& lunPlates);

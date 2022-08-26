@@ -50,7 +50,94 @@ void s_Net::release() {
 	N_mem = 0;
 	N = 0;
 }
-
+unsigned char s_CNnets::init(int nNets) {
+	N = 0;
+	eye = NULL;
+	N_mem = 0;
+	net = NULL;
+	if (nNets < 1)
+		return ECODE_OK;
+	net = new s_Net * [nNets];
+	if (net == NULL)
+		return ECODE_FAIL;
+	N_mem = nNets;
+	for (int ii = 0; ii < N_mem; ii++)
+		net[ii] = NULL;
+	return ECODE_OK;
+}
+unsigned char s_CNnets::init(const s_CNnets& other) {
+	unsigned char err = init(other.N_mem);
+	if (err != ECODE_OK)
+		return err;
+	/*generally  assume that eye is NOT owned*/
+	this->eye = other.eye;
+	if (other.net != NULL) {
+		for (int ii = 0; ii < N_mem; ii++) {
+			if (other.net[ii] != NULL) {
+				this->net[ii] = new s_Net;
+				if (this->net[ii] == NULL)
+					return ECODE_FAIL;
+				err = this->net[ii]->init(*other.net[ii]);
+				if (err == ECODE_FAIL)
+					return err;
+				this->N++;
+			}
+		}
+	}
+	if (other.trigger_node != NULL) {
+		this->trigger_node = new s_nNode;
+		if (this->trigger_node == NULL)
+			return ECODE_FAIL;
+		err=this->trigger_node->init(other.trigger_node);
+		if (err != ECODE_OK)
+			return err;
+	}
+	else
+		this->trigger_node = NULL;
+	return ECODE_OK;
+}
+void s_CNnets::release() {
+	if (trigger_node != NULL) {
+		trigger_node->release();
+		delete trigger_node;
+	}
+	trigger_node = NULL;
+	N = 0;
+	if (net != NULL) {
+		for (int ii = 0; ii < N_mem; ii++) {
+			if (net[ii] != NULL) {
+				net[ii]->release();
+				delete net[ii];
+			}
+			net[ii] = NULL;
+		}
+		delete[] net;
+	}
+	net = NULL;
+	N_mem = 0;
+}
+bool n_CNnets::rootEye(s_CNnets& nets, s_HexBasePlate& basePlate, long plate_index) {
+	/*in interest of speed assumes the eye has been setup correctly as non-null*/
+	unsigned char err = n_HexEye::imgRoot(nets.eye, &basePlate, plate_index);
+	if (err != ECODE_OK)
+		return false;
+	return true;
+}
+void n_CNnets::rootOnPlates(s_CNnets& nets, s_HexBasePlateLayer& plates) {
+	/*assumes eye has already been rooted*/
+	s_HexPlate* eye_base = nets.eye->getBottom();
+	for (long ii = 0; ii < eye_base->N; ii++) {
+		long plate_index = eye_base->nodes[ii]->thislink;
+		for (int i_net = 0; i_net < nets.N; i_net++) {
+			s_nPlate* net_base = nets.net[i_net]->getBottom();
+			s_nNode* net_node = net_base->get(ii);
+			for (int i_hanging = 0; i_hanging < net_node->N; i_hanging++) {
+				s_HexBasePlate* sel_plate = plates.get(i_hanging);
+				net_node->nodes[i_hanging] = sel_plate->nodes[plate_index];
+			}
+		}
+	}
+}
 unsigned char sNet::initNet(s_Net* sn, int nLev, int numLevNodes[]) {
 	if (sn == NULL)
 		return ECODE_ABORT;

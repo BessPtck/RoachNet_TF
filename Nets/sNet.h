@@ -32,6 +32,8 @@ class s_CNnets {/*cluster of CNNs that read from the same geometric location
 				  the nets each find a specific pattern they are programed for, the number of pats the nets find is the number of nets
 				  each net typically has it's hanging nodes root on multiple plates*/
 public:
+	s_CNnets();
+	~s_CNnets();
 	virtual unsigned char init(int nNets);/*initializes the net array does not fill pointers or own anything*/
 	virtual unsigned char init(const s_CNnets& other);/*assumes that if pointers to nets(but not eye) are non-null the objects are owned and should be copied to owned objects*/
 	virtual void          release();/*assumes that if the net pointers are non-null they are owned by this object (does not assuem ownership of eye)*/
@@ -41,11 +43,25 @@ public:
 
 	s_nNode* trigger_node;/*this node is setup to link to all the lowest plates,
 						   if the plates do not pass the threshold value
-						   of this node this net cluster will not try to root the eye or seed */
+						   of this node this net cluster will not try to root the eye or seed 
+						   considered owned if non-null when released*/
 protected:
 	int N_mem;
 };
-
+namespace n_CNnets {
+	inline bool rootEye(s_CNnets& nets, s_HexBasePlate& basePlate, long plate_index);
+	void rootOnPlates(s_CNnets& nets, s_HexBasePlateLayer& plates);/*assumes the eye has already been rooted
+																     roots each hex of the lowest layer of the net
+																	 matching the lowest layer of the eye only on those
+																	 hexes corressponding to the rooting hex in each of the plates
+																	 number of rooting/hanging nodes must equal the number of plates*/
+	void rootNNet(s_CNnets& nets, s_HexBasePlateLayer* plates);/*similar to root on plates but  NNet takes all possible data as
+															     input Xs therefore all nodes rooted on by any node(eye hex matched) in the bottom layer
+																 of the nnet must be rooted on by all nodes in the bottom layer
+																 number of hanging nodes is (total eye hexes in bottom layer)*(number of plates)
+																 order of attachement of hanging nodes is determined by the index order in the bottom
+																 level of the eye */
+}
 class sNet : public Base { /* class that generates the s_Net structs 'structure' net */
 public:
 	sNet();
