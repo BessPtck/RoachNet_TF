@@ -6,8 +6,9 @@
 #include "../HexedImg/HexEye.h"
 #endif
 
-#define NUM_LUNA_PATTERNS 8
+#define NUM_LUNA_PATTERNS 8 /* 6 luna half patterns one for each corner hex, 2 full moons one black the other white */
 #define NUM_LUNA_EYE_LEVELS 2
+#define NUM_LUNA_FOOTS 7 /* number of hexes in the lower level of the luna */
 
 class s_Net {
 public:
@@ -18,6 +19,7 @@ public:
 	unsigned char init(const s_Net& other);/*assumes that if the lev pointer is non-null the copy should own the lev*/
 	void          release();/*assumes that if lev ptr is not null it is owned*/
 
+	inline s_nPlate* getTop() { return lev[0]; }
 	inline s_nPlate* getBottom() { return lev[N - 1]; }
 
 	s_nPlate** lev;

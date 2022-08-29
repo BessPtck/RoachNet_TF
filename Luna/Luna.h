@@ -6,6 +6,9 @@
 #include "../Nets/sNet.h"
 #endif
 
+
+#define LUNA_WSCALE 3.f//60.f for line finder//1.f
+
 class s_Luna : public s_CNnets {
 public:
 	s_Luna();
@@ -29,6 +32,7 @@ namespace n_Luna {
 	/*helpers to run*/
 	void  rootOnPlates(s_Luna& lun, s_HexBasePlateLayer& colPlates);
 	float runLunaPat(s_Net* lunNet);/* returns the value of the net(the luna pattern), net must already be fully rooted */
+	float runLunaPat_on_plate(s_Net* lunaNet, int plate_i);/*runs luna pattern for the selected plate*/
 }
 class Luna : public Base {
 public:
@@ -42,10 +46,9 @@ public:
 	void          releaseLuna(s_Luna* lun);
 protected:
 
-	unsigned char genLuna(s_HexEye* eye, s_Net* net);
 
-	unsigned char genNodeStructure();
-	void genNodePattern();
+	unsigned char genLunaPatterns(s_Luna* lun);
+	void genHalfLunaPattern(int lunRot, s_nNode* topNd);
 };
 
 #endif

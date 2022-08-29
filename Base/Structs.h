@@ -175,7 +175,7 @@ protected:
 
 class s_nPlate : public s_Plate {
 public:
-	s_nPlate() {;}
+	s_nPlate() :num_hanging(0) {;}
 	~s_nPlate() { ; }
 	unsigned char init(long nNodes) { return s_Plate::init(nNodes); }
 	unsigned char init(long nNodes, int nLowerNodes);/*Initializes the plate with nodes it owns */

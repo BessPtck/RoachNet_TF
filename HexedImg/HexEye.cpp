@@ -242,10 +242,10 @@ unsigned char HexEye::genEye(s_HexEye* neye) {
 			int num_neb = collectNebIndexes(levels[i], i_top, nebi);
 			genLowerPattern(levels[i + 1]->nodes, curRs, loc, nebi, num_neb, indx);/*index advances to final pattern filled but not beyond*/
 			indx++;/*get ready to fill the next one*/
-			nd->nodes[6] = (levels[i + 1]->nodes[sub_hex_start_indx]);
+			nd->nodes[0] = (levels[i + 1]->nodes[sub_hex_start_indx]);
 			for (int down_i = 0; down_i < 6; down_i++) {
 				s_Hex* lo_center_nd = (s_Hex*)levels[i + 1]->nodes[sub_hex_start_indx];
-				nd->nodes[down_i] = lo_center_nd->web[down_i];
+				nd->nodes[down_i+1] = lo_center_nd->web[down_i];
 			}
 		}
 		levels[i + 1]->N = indx;
