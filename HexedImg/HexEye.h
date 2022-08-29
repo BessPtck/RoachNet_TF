@@ -55,16 +55,21 @@ public:
 
 	unsigned char spawn(s_HexEye* neye);/*spawn and put the results in neye*/
 	void          despawn(s_HexEye* neye);/*cleans up eye*/
+
+	inline int getNLevels() { return m_N_levels; }
+	inline long getNHexes(int i) { return m_N_hexes[i]; }
 protected:
 	/*dimensions of eyes this HexEye will initiate*/
 	float m_r;
 	float m_R;/*largest R*/
 	int   m_N_levels;
 	s_2pt m_hexU[6];
-
+	long*  m_N_hexes;
 
 	long m_imgWidth;
 	long m_imgHeight;
+	/*                                            */
+	unsigned char genNumHexesPerLevel();
 	/*                                            */
 	unsigned char initEye(s_HexEye* neye);
 	void          releaseEye(s_HexEye* neye);

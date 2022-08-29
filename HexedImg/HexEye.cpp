@@ -128,7 +128,7 @@ bool n_HexEye::check_imgRootL2(s_HexEye* eye, s_HexBasePlate* pImg) {
 		return false;
 }
 
-HexEye::HexEye() :m_r(0.f), m_R(0.f), m_N_levels(-1), m_imgWidth(0L), m_imgHeight(0L) {
+HexEye::HexEye() :m_r(0.f), m_R(0.f), m_N_levels(-1), m_N_hexes(NULL), m_imgWidth(0L), m_imgHeight(0L) {
 	for(int i=0; i<6; i++)
 		utilStruct::zero2pt(m_hexU[i]);
 }
@@ -142,16 +142,28 @@ unsigned char HexEye::init(float r, int NLevels) {
 	m_R = r * Math::power(2.f, (NLevels - 1)); /*figure out what largest R is r*2^(N_level-1) */
 	m_N_levels = NLevels;
 	n_HexPlate::genHexU_0(m_hexU);
+	m_N_hexes = new long[m_N_levels];
 	m_imgWidth = 0L;
 	m_imgHeight = 0L;
 	return ECODE_OK;
 }
 void HexEye::release() {
+	if (m_N_hexes != NULL)
+		delete[] m_N_hexes;
+	m_N_hexes = NULL;
 	m_N_levels = -1;
 	m_R = 0.f;
 	m_r = 0.f;
 }
-
+unsigned char HexEye::genNumHexesPerLevel() {
+	long N_hex = 0;
+	for (int i = 0; i < m_N_levels; i++) {
+		long N_hex_thisLevel = numHexInLevel(N_hex, i);
+		m_N_hexes[i] = N_hex_thisLevel;
+		N_hex = N_hex_thisLevel;
+	}
+	return ECODE_OK;
+}
 unsigned char HexEye::initEye(s_HexEye* neye) {
 	/* m_R should already have been set along with m_N_levels and N_lowetNodePtrs*/
 	if (neye == NULL)
@@ -161,9 +173,8 @@ unsigned char HexEye::initEye(s_HexEye* neye) {
 	neye->width = m_imgWidth;
 	neye->height = m_imgHeight;
 	float R_lev = m_R;
-	long N_hex = 0;
 	for (int i = 0; i < m_N_levels; i++) {
-		long N_hex_thisLevel = numHexInLevel(N_hex, i);
+		long N_hex_thisLevel = m_N_hexes[i];
 		if (neye->lev[neye->N] != NULL)
 			return ECODE_FAIL;
 		neye->lev[neye->N] = new s_HexPlate;
@@ -177,7 +188,6 @@ unsigned char HexEye::initEye(s_HexEye* neye) {
 		neye->lev[neye->N]->width = levelDim;
 		(neye->N)++;
 		R_lev /= 2.f;
-		N_hex = N_hex_thisLevel;
 	}
 	return ECODE_OK;
 }

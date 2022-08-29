@@ -22,11 +22,15 @@ public:
 	inline s_nPlate* getTop() { return lev[0]; }
 	inline s_nPlate* getBottom() { return lev[N - 1]; }
 
-	s_nPlate** lev;
-	int N;/*number of 'levels' or plates in this struct */
-	s_HexEye* eye;
+	s_nPlate** lev;/*these may be owned*/
+	int N;/*number of 'levels' or plates in this struct actually attached(or owned) */
+	s_HexEye* eye;/*this is typically  not owned*/
+
+	int hanging_plate_i;/*index of plate attached to the hanging nodes from the nodes in the bottom plate that has been selected as best 
+						  signal for the net */
+	float o;/*maximum output for this net*/
 protected:
-	int N_mem;
+	int N_mem;/*number of lev pointers*/
 };
 
 class s_CNnets {/*cluster of CNNs that read from the same geometric location
@@ -51,8 +55,8 @@ protected:
 	int N_mem;
 };
 namespace n_CNnets {
-	inline bool rootEye(s_CNnets& nets, s_HexBasePlate& basePlate, long plate_index);
-	void rootOnPlates(s_CNnets& nets, s_HexBasePlateLayer& plates);/*assumes the eye has already been rooted
+	inline bool rootEye(s_CNnets* nets, s_HexBasePlate& basePlate, long plate_index);
+	void rootOnPlates(s_CNnets* nets, s_HexBasePlateLayer& plates);/*assumes the eye has already been rooted
 																     roots each hex of the lowest layer of the net
 																	 matching the lowest layer of the eye only on those
 																	 hexes corressponding to the rooting hex in each of the plates
@@ -69,20 +73,29 @@ public:
 	sNet();
 	~sNet();
 
-	unsigned char initNet(s_Net* sn, int nLev, int numLevNodes[]);/*num lev nodes has dim of nLev+1 the final is the number of hanging node pointers nLowerNodes */
-	unsigned char initNet(s_Net* sn, s_HexEye* eye, int numPlates=1);/*top and bottom have 1 to 1 correspondence to eye nodes
+	unsigned char init(int nLev, int numLevNodes[], int numHanging);/*initiates the sNet so tha it will generate a certain kind of s_Net struct
+																	nLev is the number of levels in the s_Net
+																	numLevelNodes is an array of len nLev giving the number of nodes in each level
+																	numHanging is the number of open node pointers 'hanging' from each 
+																	node in the bottom level */
+	unsigned char init(HexEye* eye, int numPlates);/*initializes net to have same structure as eye
+														   with number of hanging nodes equal to the number of plates*/
+	void release();
+
+	unsigned char spawn(s_Net* sn);
+	unsigned char spawn(s_Net* sn, s_HexEye* eye);/*this eye should have exactly the same structure as the eye used to initialize the sNet
+												  top and bottom have 1 to 1 correspondence to eye nodes
 													  the hidden (middle) levels have each node connected (by hanging links)
 													  to all the nodes on the next level down
-													  lowest level eye num hexes = lowest num of net nodes 
+													  lowest level eye num hexes = lowest num of net nodes
 													  hanging nodes from lowest net level correspond to number
 													  of plates that the net will connect to */
-	unsigned char initLuna(s_Net* sn, s_HexEye* eye, int numColPlates=1);/*initiates net but with each of the hanging on the bottom
-													   set up to connect to the plates
-													   the number of hanging for the lowest level equals the number
-													   of luna plates */
+	void          despawn(s_Net* sn);
 
-	void releaseNet(s_Net* sn);
 protected:
+	int m_nLev;
+	int* m_numLevNodes;/*num of nodes in each level + num of hanging nodes has length m_nLev+1*/
+	int  m_numHanging;
 	unsigned char connDownNet(s_Net* sn);/*connects the levels in the s_Net to each of their lower levels
 								           assumes that the number of hanging nodes in mem is the same as the number of nodes in the lower plate*/
 };

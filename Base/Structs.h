@@ -191,6 +191,7 @@ public:
 	inline void set(int indx, s_nNode* nd) { this->nodes[indx] = (s_Node*)nd; }
 	inline s_nNode* get(long indx) { return (s_nNode*)this->nodes[indx]; }
 	inline s_nNode* getConst(long indx) const { return (s_nNode*)this->nodes[indx]; }
+	inline int getNumHanging() const{ return num_hanging; }
 private:
 	int num_hanging;
 };

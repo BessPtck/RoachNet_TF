@@ -53,6 +53,7 @@ void s_Net::release() {
 unsigned char s_CNnets::init(int nNets) {
 	N = 0;
 	eye = NULL;
+	trigger_node = NULL;
 	N_mem = 0;
 	net = NULL;
 	if (nNets < 1)
@@ -116,20 +117,20 @@ void s_CNnets::release() {
 	net = NULL;
 	N_mem = 0;
 }
-bool n_CNnets::rootEye(s_CNnets& nets, s_HexBasePlate& basePlate, long plate_index) {
+bool n_CNnets::rootEye(s_CNnets* nets, s_HexBasePlate& basePlate, long plate_index) {
 	/*in interest of speed assumes the eye has been setup correctly as non-null*/
-	unsigned char err = n_HexEye::imgRoot(nets.eye, &basePlate, plate_index);
+	unsigned char err = n_HexEye::imgRoot(nets->eye, &basePlate, plate_index);
 	if (err != ECODE_OK)
 		return false;
 	return true;
 }
-void n_CNnets::rootOnPlates(s_CNnets& nets, s_HexBasePlateLayer& plates) {
+void n_CNnets::rootOnPlates(s_CNnets* nets, s_HexBasePlateLayer& plates) {
 	/*assumes eye has already been rooted*/
-	s_HexPlate* eye_base = nets.eye->getBottom();
+	s_HexPlate* eye_base = nets->eye->getBottom();
 	for (long ii = 0; ii < eye_base->N; ii++) {
 		long plate_index = eye_base->nodes[ii]->thislink;
-		for (int i_net = 0; i_net < nets.N; i_net++) {
-			s_nPlate* net_base = nets.net[i_net]->getBottom();
+		for (int i_net = 0; i_net < nets->N; i_net++) {
+			s_nPlate* net_base = nets->net[i_net]->getBottom();
 			s_nNode* net_node = net_base->get(ii);
 			for (int i_hanging = 0; i_hanging < net_node->N; i_hanging++) {
 				s_HexBasePlate* sel_plate = plates.get(i_hanging);
@@ -138,41 +139,59 @@ void n_CNnets::rootOnPlates(s_CNnets& nets, s_HexBasePlateLayer& plates) {
 		}
 	}
 }
-unsigned char sNet::initNet(s_Net* sn, int nLev, int numLevNodes[]) {
-	if (sn == NULL)
+sNet::sNet() :m_nLev(0), m_numLevNodes(NULL), m_numHanging(0) { ; }
+sNet::~sNet() { ; }
+unsigned char sNet::init(int nLev, int numLevNodes[], int numHanging) {
+	if (nLev < 1)
 		return ECODE_ABORT;
-	if (Err(sn->init(nLev)))
-		return ECODE_FAIL;
-	for (int ii = 0; ii < nLev; ii++) {
-		unsigned char err = sn->lev[ii]->init((long)numLevNodes[ii], numLevNodes[ii + 1]);
-		if (Err(err))
-			return err;
-	}
+	for (int i = 0; i < nLev; i++)
+		if (numLevNodes[i] < 1)
+			return ECODE_ABORT;
+	m_nLev = nLev;
+	m_numLevNodes = new int[m_nLev+1];
+	for (int i = 0; i < nLev; i++)
+		m_numLevNodes[i] = numLevNodes[i];
+	m_numHanging = numHanging;
+	m_numLevNodes[nLev] = numHanging;
 	return ECODE_OK;
 }
-unsigned char sNet::initNet(s_Net* sn, s_HexEye* eye, int numPlates) {
-	if (sn == NULL || eye == NULL)
+unsigned char sNet::init(HexEye* eye, int numPlates) {
+	if (eye == NULL)
 		return ECODE_ABORT;
-	int num_eye_lev = eye->N;
-	if (num_eye_lev < 1)
+	int m_nLev = eye->getNLevels();
+	if (m_nLev < 1)
 		return ECODE_ABORT;
-	if (Err(sn->init(num_eye_lev)))
+	m_numLevNodes = new int[m_nLev + 1];
+	for (int i = 0; i < m_nLev; i++) {
+		m_numLevNodes[i] = eye->getNHexes(i);
+	}
+	m_numLevNodes[m_nLev] = numPlates;
+	m_numHanging = numPlates;
+}
+void sNet::release() {
+	m_numHanging = 0;
+	if (m_numLevNodes != NULL)
+		delete[] m_numLevNodes;
+	m_numLevNodes = NULL;
+	m_nLev = 0;
+}
+unsigned char sNet::spawn(s_Net* sn) {
+	if (sn == NULL)
+		return ECODE_ABORT;
+	if (Err(sn->init(m_nLev)))
 		return ECODE_FAIL;
-	(sn->N) = 0;
-	for (int ii = 0; ii < (num_eye_lev-1); ii++) {
-		unsigned char err = sn->lev[ii]->init(eye->lev[ii], eye->lev[ii+1]->N);
+	for (int ii = 0; ii < m_nLev; ii++) {
+		unsigned char err = sn->lev[ii]->init((long)m_numLevNodes[ii], m_numLevNodes[ii + 1]);
 		if (Err(err))
 			return err;
-		(sn->N)++;
+		sn->N++;
 	}
-
-	/*structure of bottom matches eye and top corresponds to highest center of eye
-	  however the structure in between may not correspond exactly to the 
-	  geometry of the eye */
-	unsigned char err = sn->lev[(num_eye_lev - 1)]->init(eye->getBottom()->N, numPlates);
+	return connDownNet(sn);
+}
+unsigned char sNet::spawn(s_Net* sn, s_HexEye* eye) {
+	unsigned char err = spawn(sn);
 	if (Err(err))
 		return err;
-	(sn->N)++;
 	/*connect bottom plate to eye*/
 	for (int ii = 0; ii < eye->getBottom()->N; ii++) {
 		s_nNode* net_node = sn->getBottom()->get(ii);
@@ -185,55 +204,22 @@ unsigned char sNet::initNet(s_Net* sn, s_HexEye* eye, int numPlates) {
 	net_top_node->hex = eye_top_node;
 
 	sn->eye = eye;
-	/*connect all layers in net to themselves*/
-	return connDownNet(sn);
-}
-unsigned char sNet::initLuna(s_Net* sn, s_HexEye* eye, int numColPlates) {
-	if (sn == NULL || eye == NULL)
-		return ECODE_FAIL;
-	int num_lev = eye->N;
-	if (num_lev != NUM_LUNA_EYE_LEVELS)
-		return ECODE_ABORT;
-	int* numLevNodes = new int[num_lev + 1];
-	if (numLevNodes == NULL)
-		return ECODE_FAIL;
-	for (int i = 0; i < num_lev; i++) {
-		numLevNodes[i] = eye->lev[i]->N;
-	}
-	numLevNodes[num_lev] = numColPlates;
-	unsigned char err = initNet(sn, num_lev, numLevNodes);
-	if (Err(err))
-		return err;
-	/*assumes luna has 2 levels*/
-	/*connect the top net to the bottom net*/
-	s_Hex* luna_top_node = eye->lev[0]->get(0);
-	s_nNode* net_top_node = sn->lev[0]->get(0);
-	net_top_node->hex = luna_top_node;
-	if (luna_top_node->N != (int)eye->lev[0]->N)
-		return ECODE_FAIL;
-	/*connect the bottom layer of the net directly to the hexes according to the hex indexes
-	   so that the hex indexes match the net indexes*/
-	for (long i_lower = 0; i_lower < eye->lev[0]->N; i_lower++) {
-		s_Hex* luna_node = eye->getBottom()->get(i_lower);
-		s_nNode* net_node = sn->getBottom()->get(i_lower);
-		net_node->hex = luna_node;
-		/*the hanging node will also point to the same bottom hex node*/
-		net_node->nodes[0] = (s_Node*)luna_node;
-	}
-	/*connect the hanging nodes so that the order of the hanging nodes in the net
-	  is the same as the order of the hanging nodes from the top level of the eye*/
-	for (int hanging_i = 0; hanging_i < luna_top_node->N; hanging_i++) {
-		s_Node* luna_node = luna_top_node->nodes[hanging_i];
-		s_Node* net_node = sn->getBottom()->get(luna_node->thislink);
-		net_top_node->nodes[hanging_i] = net_node;
-	}
-	sn->eye = eye;
 	return ECODE_OK;
 }
-void sNet::releaseNet(s_Net* sn) {
-	if(sn!=NULL)
-		sn->release();/*if lev pointers are not null they are released here*/
+void sNet::despawn(s_Net* sn) {
+	if (sn == NULL)
+		return;
+	sn->eye = NULL;
+	for (int ii = 0; ii < m_nLev; ii++) {
+		if (sn->lev[ii] != NULL) {
+			sn->lev[ii]->release();
+		}
+	}
+	sn->release();
+	sn->N = 0;
 }
+
+
 unsigned char sNet::connDownNet(s_Net* sn) {
 	int num_net_lev = sn->N;
 	if (num_net_lev < 1)
