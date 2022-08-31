@@ -155,6 +155,17 @@ void HexEye::release() {
 	m_R = 0.f;
 	m_r = 0.f;
 }
+unsigned char HexEye::spawn(s_HexEye* neye) {
+	if (neye == NULL)
+		return ECODE_ABORT;
+	unsigned char err = initEye(neye);
+	if (Err(err))
+		return err;
+	return genEye(neye);
+}
+void HexEye::despawn(s_HexEye* neye) {
+	releaseEye(neye);
+}
 unsigned char HexEye::genNumHexesPerLevel() {
 	long N_hex = 0;
 	for (int i = 0; i < m_N_levels; i++) {

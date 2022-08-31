@@ -114,17 +114,14 @@ unsigned char Luna::spawn(s_Luna* lun) {
 		return ECODE_ABORT;
 	lun->init();
 	/*spawn eye*/
-	lun->eye = new s_HexEye;
 	unsigned char err = m_EyeMaster->spawn(lun->eye);
 	if (Err(err))
 		return err;
 	for (int i_luna = 0; i_luna < NUM_LUNA_PATTERNS; i_luna++) {
-		lun->net[i_luna] = new s_Net;
 		err |= m_NetMaster->spawn(lun->net[i_luna], lun->eye);
 		if (RetOk(err))
 			err |= connLunaInterLinks(lun->net[i_luna], lun->eye);
 	}
-	lun->N = NUM_LUNA_PATTERNS;
 	if (Err(err))
 		return err;
 	/*finished setting up the structure */
@@ -137,16 +134,11 @@ void Luna::despawn(s_Luna* lun) {
 	for (int i_luna = 0; i_luna < lun->N; i_luna++) {
 		if (lun->net[i_luna] != NULL) {
 			m_NetMaster->despawn(lun->net[i_luna]);
-			delete lun->net[i_luna];
 		}
-		lun->N = 0;
-		lun->net[i_luna] = NULL;
 	}
 	if (lun->eye != NULL) {
 		m_EyeMaster->despawn(lun->eye);
-		delete lun->eye;
 	}
-	lun->eye = NULL;
 	lun->release();
 }
 unsigned char Luna::connLunaInterLinks(s_Net* sn, s_HexEye* eye) {

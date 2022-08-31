@@ -50,6 +50,44 @@ void s_Net::release() {
 	N_mem = 0;
 	N = 0;
 }
+void n_Net::rootNNet(s_Net* net, s_HexPlate* eye_base, s_HexBasePlateLayer* plates) {
+	/*assumes that net_base has same number of nodes as eye_base and that both have more than one node/hex */
+	s_nPlate* net_base = net->getBottom();
+	int net_hanging = 0;
+	s_nNode* net_node = net_base->get(0);
+	for (long hex_i = 0; hex_i < eye_base->N; hex_i++) {
+		long plate_index = eye_base->nodes[hex_i]->thislink;
+		for (int plate_i = 0; plate_i < plates->N; plate_i++) {
+			net_node->nodes[net_hanging] = plates->get(plate_i)->getNd(plate_index);
+			net_hanging++;
+		}
+	}
+	/*all nodes on the bottom of the net point to the same set of pointers*/
+	for (long hex_i = 1; hex_i < net_base->N; hex_i++) {
+		s_nNode* net_node_to_dup = net_base->get(hex_i);
+		for (int hanging_i = 0; hanging_i < net_hanging; hanging_i++)
+			net_node_to_dup->nodes[hanging_i] = net_node->nodes[hanging_i];
+	}
+}
+void n_Net::runRootedNNet(s_Net* net) {
+	/*assume that net has at least one level*/
+	for (int lev_i = net->N - 1; lev_i >= 0; lev_i--) {
+		s_nPlate* net_lev = net->lev[lev_i];
+		for (long nd_i = 0; nd_i < net_lev->N; nd_i++) {
+			s_nNode* net_node = net_lev->get(nd_i);
+			float node_sum = 0.f;
+			for (int w_i = 0; w_i < net_node->N; w_i++) {
+				float X = net_node->nodes[w_i]->o;
+				float w = net_node->w[w_i];
+				node_sum += w * X;
+			}
+			float node_o = Math::StepFuncSym(node_sum);
+			net_node->o = node_o;
+		}
+	}
+	net->o = net->getTop()->get(0)->o;
+}
+
 unsigned char s_CNnets::init(int nNets) {
 	N = 0;
 	eye = NULL;
@@ -137,6 +175,20 @@ void n_CNnets::rootOnPlates(s_CNnets* nets, s_HexBasePlateLayer& plates) {
 				net_node->nodes[i_hanging] = sel_plate->nodes[plate_index];
 			}
 		}
+	}
+}
+void n_CNnets::rootNNet(s_CNnets* nets, s_HexBasePlateLayer* plates) {
+	s_HexPlate* eye_base = nets->eye->getBottom();
+	for (int i_net = 0; i_net < nets->N; i_net++) {
+		n_Net::rootNNet(nets->net[i_net], eye_base, plates);
+	}
+}
+bool n_CNnets::runNNet(s_CNnets* nets, s_HexBasePlateLayer* plates, long plate_index) {
+	if (!rootEye(nets, *(plates->get(0)), plate_index))/*choose the first plate for the root all plates should have the same geometry*/
+		return false;
+	rootNNet(nets, plates);
+	for (int i_net = 0; i_net < nets->N; i_net++) {
+		n_Net::runRootedNNet(nets->net[i_net]);
 	}
 }
 sNet::sNet() :m_nLev(0), m_numLevNodes(NULL), m_numHanging(0) { ; }

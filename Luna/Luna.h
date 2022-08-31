@@ -24,11 +24,10 @@ namespace n_Luna {
 	bool run(s_Luna* lun, s_HexBasePlateLayer& colPlates, s_HexBasePlateLayer& lunPlates, long plate_index);/*runs luna at the plate_index location */
 	/*helpers to run*/
 	inline bool rootEye(s_Luna* lun, s_HexBasePlate& basePlate, long plate_index)
-	  {  return n_CNnets::rootEye(lun, basePlate, plate_index);	}	/*roots the hex eye in the luna pattern on this location of the base plate
-										                                   the base plate will have the exact same dimensions as all  of the col plates
-																		   and the luna plates above
-																		   returns true if rooted successfully*/
-
+	  {  return n_CNnets::rootEye(lun, basePlate, plate_index);	}/* roots the hex eye in the luna pattern on this location of the base plate
+										                                    the base plate will have the exact same dimensions as all  of the col plates
+																		    and the luna plates above
+																		    returns true if rooted successfully*/
 
 	//void check_run(s_Luna& lun, s_HexBasePlateLayer& colPlates, s_HexBasePlateLayer& lunPlates);
 

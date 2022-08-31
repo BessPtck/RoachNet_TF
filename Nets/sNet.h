@@ -27,12 +27,15 @@ public:
 	s_HexEye* eye;/*this is typically  not owned*/
 
 	int hanging_plate_i;/*index of plate attached to the hanging nodes from the nodes in the bottom plate that has been selected as best 
-						  signal for the net */
+						  signal for the net not always filled */
 	float o;/*maximum output for this net*/
 protected:
 	int N_mem;/*number of lev pointers*/
 };
-
+namespace n_Net {
+	void rootNNet(s_Net* net, s_HexPlate* eye_base, s_HexBasePlateLayer* plates);/*assumes that the eye_base is rooted in the correct spot*/
+	void runRootedNNet(s_Net* net);
+}
 class s_CNnets {/*cluster of CNNs that read from the same geometric location
 				  the geometric location is where the eye is rooted
 				  the nets each find a specific pattern they are programed for, the number of pats the nets find is the number of nets
@@ -61,12 +64,14 @@ namespace n_CNnets {
 																	 matching the lowest layer of the eye only on those
 																	 hexes corressponding to the rooting hex in each of the plates
 																	 number of rooting/hanging nodes must equal the number of plates*/
-	void rootNNet(s_CNnets& nets, s_HexBasePlateLayer* plates);/*similar to root on plates but  NNet takes all possible data as
+	void rootNNet(s_CNnets* nets, s_HexBasePlateLayer* plates);/*assumes the eye has already been rooted
+															     similar to root on plates but  NNet takes all possible data as
 															     input Xs therefore all nodes rooted on by any node(eye hex matched) in the bottom layer
 																 of the nnet must be rooted on by all nodes in the bottom layer
 																 number of hanging nodes is (total eye hexes in bottom layer)*(number of plates)
 																 order of attachement of hanging nodes is determined by the index order in the bottom
 																 level of the eye */
+	bool runNNet(s_CNnets* nets, s_HexBasePlateLayer* plates, long plate_index);/*roots and runs the nnet at plate_index*/
 }
 class sNet : public Base { /* class that generates the s_Net structs 'structure' net */
 public:
@@ -100,12 +105,5 @@ protected:
 								           assumes that the number of hanging nodes in mem is the same as the number of nodes in the lower plate*/
 };
 
-//namespace n_Net {
-//	void platesRootL2(s_HexEye* eye, s_HexPlate* plates[], long center_i);
-	/*assumes geometry of lowest layer of eye is the same as geometry of plates
-																	  and that the plates all have the same geometry
-																	  and the eye has only 2 levels */
-//	bool check_platesRootL2(s_HexEye* eye, s_HexPlate* plates[], int num_plates);
-	/* check that the geometry is good here for a root*/
-//}
+
 #endif
