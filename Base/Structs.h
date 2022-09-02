@@ -44,9 +44,9 @@ public:
 	s_Hex(const s_Hex& other);
 	~s_Hex();
 
-	unsigned char init(long plate_index);
-	unsigned char init(const s_Hex* other);
-	void          release();
+	virtual unsigned char init(long plate_index);
+	virtual unsigned char init(const s_Hex* other);
+	virtual void          release();
 	s_Hex& operator=(const s_Hex& other);
 	inline void setRGB(float col_rgb[]) { rgb[0] = col_rgb[0]; rgb[1] = col_rgb[1]; rgb[2] = col_rgb[2]; }
 	inline void setRGB(float col_r, float col_g, float col_b) { rgb[0] = col_r; rgb[1] = col_g; rgb[2] = col_b; }
@@ -63,7 +63,19 @@ public:
 private:
 	void copy(const s_Hex* other);
 };
+class s_lunHex : public s_Hex {/*special hex that also contains enough info to run a fast simple net*/
+public:
+	s_lunHex() :w(NULL), col_i(-1) { ; }
+	~s_lunHex() {;}
 
+	unsigned char init(long plate_index);
+	unsigned char init(const s_Hex* other);
+	unsigned char init(const s_lunHex* other);
+	void          release();
+
+	float* w;
+	int    col_i;
+};
 class s_nNode : public s_Node {/*nnet node*/
 public:
 	s_nNode();
@@ -198,7 +210,12 @@ private:
 
 class s_HexPlateLayer {
 public:
+	s_HexPlateLayer();
+	~s_HexPlateLayer();
+	unsigned char init(int Nplates);
+	void          release();
 	virtual inline s_HexPlate* get(int indx) { return p[indx]; }
+	inline int getNmem() { return N_mem; }
 	s_HexPlate** p;
 	int N;
 protected:
@@ -206,6 +223,8 @@ protected:
 };
 class s_HexBasePlateLayer : public s_HexPlateLayer {
 public:
+	s_HexBasePlateLayer() { ; }
+	~s_HexBasePlateLayer() { ; }
 	inline s_HexBasePlate* get(int indx) { return (s_HexBasePlate*)p[indx]; }
 };
 #endif

@@ -33,6 +33,28 @@ void s_Luna::release() {
 	}
 	eye = NULL;
 }
+bool n_Luna::run(s_HexBasePlateLayer* colPlates, s_HexBasePlateLayer* lunPlates, long plate_index) {
+	for (int lun_i = 0; lun_i < lunPlates->N; lun_i++) {
+		s_HexPlate* lun_plate = (s_HexPlate*)lunPlates->get(lun_i);
+		s_lunHex* lun_hex = (s_lunHex*)lun_hex->nodes[plate_index];
+		float highest_o = -1.f;
+		int   highest_col_i = -1;
+		for (int i_colplate = 0; i_colplate < colPlates->N; i_colplate++) {
+			if (runImbeddedLuna(lun_hex, (s_HexPlate*)colPlates->p[i_colplate])) {
+				float o = lun_hex->o;
+				if (o > highest_o) {
+					highest_o = o;
+					highest_col_i = i_colplate;
+				}
+			}
+			else
+				return false; /*this luna is on the edge*/
+		}
+		lun_hex->o = highest_o;
+		lun_hex->col_i = highest_col_i;
+	}
+	return true;
+}
 bool n_Luna::run(s_Luna* lun, s_HexBasePlateLayer& colPlates, s_HexBasePlateLayer& lunPlates, long plate_index) {
 	s_HexBasePlate* basePlate = colPlates.get(0);/*all plates should have the exact same geometry*/
 	bool locRootGood = rootEye(lun, *basePlate, plate_index);
@@ -45,6 +67,20 @@ bool n_Luna::run(s_Luna* lun, s_HexBasePlateLayer& colPlates, s_HexBasePlateLaye
 		}
 	}
 	return locRootGood;
+}
+bool n_Luna::runImbeddedLuna(s_lunHex* lun, s_HexPlate* colPlate) {
+	float wsum = 0.f;
+	for (int i_down = 0; i_down < lun->N; i_down++) {
+		s_Node* nd_down = lun->nodes[i_down];
+		if (nd_down == NULL)
+			return false;
+		long plate_index = nd_down->thislink;
+		s_Node* plate_nd = colPlate->get(plate_index);
+		float w = lun->w[i_down];
+		float x = plate_nd->o;
+		wsum += w * x;
+	}
+	return Math::StepFuncSym(wsum);
 }
 void n_Luna::runLunaPatterns(s_Luna* lun) {
 	int NumLunaPatterns = lun->N; /*this should be the same as NUM_LUNA_PATTERNS
@@ -141,6 +177,35 @@ void Luna::despawn(s_Luna* lun) {
 	}
 	lun->release();
 }
+unsigned char Luna::spawn(s_Luna* lun, s_HexBasePlateLayer* lunPlates, s_HexBasePlate* base_plate) {
+	if (lun == NULL || lunPlates == NULL || base_plate == NULL)
+		return ECODE_ABORT;
+	unsigned char err = spawn(lun);
+	if (Err(err))
+		return err;
+	err = lunPlates->init(lun->N);
+	if (Err(err))
+		return err;
+	for (int i = 0; i < lunPlates->getNmem(); i++) {
+		lunPlates->p[i] = new s_HexBasePlate;
+		if (lunPlates->p[i] == NULL)
+			return ECODE_FAIL;
+		err = lunPlates->p[i]->init(base_plate);/*this initializes the plate but does not connect the down links, or fill the w's for the down links*/
+		if (Err(err))
+			return err;
+		err = replaceHexWithLuna_inPlate(lunPlates->p[i]);
+		if (Err(err))
+			return err;
+		err = setDownLinks(lunPlates->p[i], base_plate);
+		if (Err(err))
+			return err;
+		err = imbedLunaInPlate(lun, i, lunPlates->p[i]);
+		if (Err(err))
+			return err;
+		lunPlates->N++;
+	}
+	return ECODE_OK;
+}
 unsigned char Luna::connLunaInterLinks(s_Net* sn, s_HexEye* eye) {
 	/*assumes luna has 2 levels*/
     /*connect the top net to the bottom net*/
@@ -166,6 +231,44 @@ unsigned char Luna::connLunaInterLinks(s_Net* sn, s_HexEye* eye) {
 		net_top_node->nodes[hanging_i] = net_node;
 	}
 	sn->eye = eye;
+	return ECODE_OK;
+}
+unsigned char Luna::replaceHexWithLuna_inPlate(s_HexPlate* lunPlate) {
+	for (long i_hex = 0; i_hex < lunPlate->N; i_hex++) {
+		s_Hex* throw_node = lunPlate->get(i_hex);
+		s_lunHex* lun_node = new s_lunHex;
+		unsigned char err = lun_node->init(throw_node);
+		if (Err(err))
+			return err;
+		lunPlate->nodes[i_hex] = (s_Node*)lun_node;
+		throw_node->release();
+		delete throw_node;
+	}
+	return ECODE_OK;
+}
+unsigned char Luna::setDownLinks(s_HexPlate* lunPlate, s_HexBasePlate* base_plate) {
+	for (long i_hex = 0; i_hex < lunPlate->N; i_hex++) {
+		s_Hex* topHex = lunPlate->get(i_hex);
+		s_Hex* bot_center_node = base_plate->get(i_hex);
+		topHex->nodes[0] = (s_Node*)bot_center_node;
+		for (int i_web = 0; i_web < 6; i_web++) {
+			s_Node* bot_node = bot_center_node->web[i_web];
+			int i_top_web = i_web + 1;
+			topHex->nodes[i_top_web] = bot_node;
+		}
+	}
+	return ECODE_OK;
+}
+unsigned char Luna::imbedLunaInPlate(s_Luna* lun, int luna_i, s_HexPlate* lunPlate) {
+	s_Net* net = lun->net[luna_i];
+	s_nPlate* topLunPlate = net->getTop();
+	s_nNode* lunNd = topLunPlate->get(0);
+	for (long i_hex = 0; i_hex < lunPlate->N; i_hex++) {
+		s_lunHex* topNd = (s_lunHex*)lunPlate->nodes[i_hex];
+		for (int i_w = 0; i_w < lunNd->N; i_w++) {/*assumes that topNd, N is 7 and lunNd N is 7 */
+			topNd->w[i_w] = lunNd->w[i_w];
+		}
+	}
 	return ECODE_OK;
 }
 unsigned char Luna::genLunaPatterns(s_Luna* lun) {

@@ -21,7 +21,17 @@ public:
 protected:
 };
 namespace n_Luna {
-	bool run(s_Luna* lun, s_HexBasePlateLayer& colPlates, s_HexBasePlateLayer& lunPlates, long plate_index);/*runs luna at the plate_index location */
+	bool run(s_HexBasePlateLayer* colPlates, s_HexBasePlateLayer* lunPlates, long plate_index);/*fills luna plates with strongest luna pattern from col plates 
+																							   assumes that each luna has been imbedded in the 
+																							   luna plates
+																							   first of the colPlates should be the geo ref
+																							   plate that the
+																							   lunas are connected to*/
+	bool run(s_Luna* lun, s_HexBasePlateLayer& colPlates, s_HexBasePlateLayer& lunPlates, long plate_index);/*alternative method to above
+																											runs luna at the plate_index location
+																											this is for plates where luna was not imbedded*/
+	/*helpers to run imbedded*/
+	bool runImbeddedLuna(s_lunHex* lun, s_HexPlate* colPlate);
 	/*helpers to run*/
 	inline bool rootEye(s_Luna* lun, s_HexBasePlate& basePlate, long plate_index)
 	  {  return n_CNnets::rootEye(lun, basePlate, plate_index);	}/* roots the hex eye in the luna pattern on this location of the base plate
@@ -37,6 +47,7 @@ namespace n_Luna {
 									     at the end of this run each s_Net in the s_luna now has a o value corresponding 
 										 to the current plate location */
 	float runLunaPat_on_plate(s_Net* lunaNet, int plate_i);/*runs luna pattern for the selected plate*/
+
 }
 class Luna : public Base {
 public:
@@ -48,6 +59,13 @@ public:
 
 	unsigned char spawn(s_Luna* lun);/*initializes the s_Luna and fills it with the luna patterns, the luna owns its own eye*/
 	void          despawn(s_Luna* lun);
+	unsigned char spawn(s_Luna* lun, s_HexBasePlateLayer* lunPlates, s_HexBasePlate* base_plate);/*this spawns the luna and a set of 
+																								    plates that have the lunas imbedded into them
+																								    the base_plate is one of the color plates it has the correct
+																									shape for all the base color plates
+																									it can be used instead of of spawn(s_Luna*)
+																									base plate is not changed */
+	void          despawn(s_Luna* lun, s_HexBasePlateLayer* lunPlates, s_HexBasePlate* base_plate);
 protected:
 	/*owned modules used to initiate their respective structs*/
 	sNet* m_NetMaster;
@@ -59,6 +77,9 @@ protected:
 													   set up to connect to the plates
 													   the number of hanging for the lowest level equals the number
 													   of luna plates */
+	unsigned char replaceHexWithLuna_inPlate(s_HexPlate* lunPlate);
+	unsigned char setDownLinks(s_HexPlate* lunPlate, s_HexBasePlate* base_plate);
+	unsigned char imbedLunaInPlate(s_Luna* lun, int luna_i, s_HexPlate* lunPlate);
 
 	unsigned char genLunaPatterns(s_Luna* lun);
 	void genHalfLunaPattern(int lunRot, s_nNode* topNd);

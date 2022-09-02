@@ -24,7 +24,7 @@ unsigned char s_Node::init(int nNodes) {
 	if (nodes == NULL)
 		return ECODE_FAIL;
 	N_mem = nNodes;
-	for (int ii = 0; ii < N; ii++)
+	for (int ii = 0; ii < N_mem; ii++)
 		nodes[ii] = NULL;
 	N = 0;
 	return ECODE_OK;
@@ -132,7 +132,7 @@ unsigned char s_Hex::init(long plate_index) {
 	thislink = plate_index;
 	for (int ii = 0; ii < 6; ii++)
 		web[ii] = NULL;
-	s_Node::init(7);
+	return s_Node::init(7);
 }
 unsigned char s_Hex::init(const s_Hex* other) {
 	unsigned char err = init(other->thislink);
@@ -170,6 +170,43 @@ void s_Hex::copy(const s_Hex* other) {
 		this->web[ii] = other->web[ii];
 	for (int ii = 0; ii < 3; ii++)
 		this->rgb[ii] = other->rgb[ii];
+}
+unsigned char s_lunHex::init(long plate_index) {
+	unsigned char err=s_Hex::init(plate_index);
+	if (err != ECODE_OK)
+		return err;
+	w = new float[this->N_mem];
+	for (int ii = 0; ii < this->N_mem; ii++)
+		w[ii] = 0.f;
+	col_i = -1;
+	return ECODE_OK;
+}
+unsigned char s_lunHex::init(const s_Hex* other) {
+	unsigned char err = s_Hex::init((s_Hex*)other);
+	if (err != ECODE_OK)
+		return err;
+	w = new float[this->N_mem];
+	for (int ii = 0; ii < this->N_mem; ii++)
+		w[ii] = 0.f;
+	col_i = -1;
+	return ECODE_OK;
+}
+unsigned char s_lunHex::init(const s_lunHex* other) {
+	unsigned char err=s_Hex::init((s_Hex*)other);
+	if (err != ECODE_OK)
+		return err;
+	w = new float[this->N_mem];
+	for (int ii = 0; ii < this->N_mem; ii++)
+		this->w[ii] = other->w[ii];
+	this->col_i = other->col_i;
+	return ECODE_OK;
+}
+void s_lunHex::release() {
+	if (w != NULL) {
+		delete[] w;
+	}
+	w = NULL;
+	s_Hex::release();
 }
 s_nNode::s_nNode() :hex(NULL), w(NULL), b(0.f) {
 	;
@@ -591,4 +628,21 @@ unsigned char s_nPlate::setHexes(s_HexPlate* hex_plate) {
 		((s_nNode*)nodes[ii])->hex = (s_Hex*)hex_plate->nodes[ii];
 	}
 	return ECODE_OK;
+}
+s_HexPlateLayer::s_HexPlateLayer() :p(NULL), N(0), N_mem(0) { ; }
+s_HexPlateLayer::~s_HexPlateLayer() { ; }
+unsigned char s_HexPlateLayer::init(int Nplates) {
+	p = new s_HexPlate * [Nplates];
+	if (p == NULL)
+		return ECODE_FAIL;
+	N_mem = Nplates;
+	N = 0;
+}
+void s_HexPlateLayer::release() {
+	if (p != NULL) {
+		delete[] p;
+	}
+	p = NULL;
+	N_mem = 0;
+	N = 0;
 }

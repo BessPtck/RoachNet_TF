@@ -269,9 +269,7 @@ void sNet::despawn(s_Net* sn) {
 	}
 	sn->release();
 	sn->N = 0;
-}
-
-
+} 
 unsigned char sNet::connDownNet(s_Net* sn) {
 	int num_net_lev = sn->N;
 	if (num_net_lev < 1)
