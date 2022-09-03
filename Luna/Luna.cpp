@@ -206,6 +206,18 @@ unsigned char Luna::spawn(s_Luna* lun, s_HexBasePlateLayer* lunPlates, s_HexBase
 	}
 	return ECODE_OK;
 }
+void Luna::despawn(s_Luna* lun, s_HexBasePlateLayer* lunPlates) {
+	if (lunPlates == NULL)
+		return;
+	for (int i = 0; i < lunPlates->getNmem(); i++) {
+		if (lunPlates->p[i] != NULL) {
+			lunPlates->p[i]->release();/*releases nodes, lunHex->release should overload Hex->release*/
+			delete lunPlates->p[i];
+		}
+		lunPlates->release();
+	}
+	despawn(lun);
+}
 unsigned char Luna::connLunaInterLinks(s_Net* sn, s_HexEye* eye) {
 	/*assumes luna has 2 levels*/
     /*connect the top net to the bottom net*/

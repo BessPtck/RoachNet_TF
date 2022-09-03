@@ -65,7 +65,7 @@ public:
 																									shape for all the base color plates
 																									it can be used instead of of spawn(s_Luna*)
 																									base plate is not changed */
-	void          despawn(s_Luna* lun, s_HexBasePlateLayer* lunPlates, s_HexBasePlate* base_plate);
+	void          despawn(s_Luna* lun, s_HexBasePlateLayer* lunPlates);
 protected:
 	/*owned modules used to initiate their respective structs*/
 	sNet* m_NetMaster;
