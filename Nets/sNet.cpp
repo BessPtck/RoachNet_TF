@@ -270,6 +270,35 @@ void sNet::despawn(s_Net* sn) {
 	sn->release();
 	sn->N = 0;
 } 
+int sNet::getTotalNumWeights(s_Net* sn) {
+	if (sn == NULL)
+		return -1;
+	int num_weights = 0;
+	if (sn->N < 2)
+		return num_weights;
+	for (int i = 1; i < sn->N; i++) {
+		num_weights += sn->lev[i]->N;
+	}
+	s_nPlate* botLev = sn->getBottom();
+	int num_bot_nodes = botLev->N;
+	for (int i = 0; i < num_bot_nodes; i++) {
+		s_Node* bot_node = botLev->getNd(i);
+		if (bot_node != NULL)
+			num_weights += bot_node->N;
+	}
+	return num_weights;
+}
+int sNet::getTotalNumNodes(s_Net* sn) {
+	if (sn == NULL)
+		return -1;
+	int num_nodes = 0;
+	if (sn->N < 1)
+		return num_nodes;
+	for (int i = 0; i < sn->N; i++) {
+		num_nodes += sn->lev[i]->N;
+	}
+	return num_nodes;
+}
 unsigned char sNet::connDownNet(s_Net* sn) {
 	int num_net_lev = sn->N;
 	if (num_net_lev < 1)

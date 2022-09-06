@@ -96,7 +96,9 @@ public:
 													  hanging nodes from lowest net level correspond to number
 													  of plates that the net will connect to */
 	void          despawn(s_Net* sn);
-
+	int getTotalNumWeights(s_Net* sn);/*assmes this node has been constructed for a nnet
+									  gets the total number of weights in the net counting all the weights in each level including the hanging weights*/
+	int getTotalNumNodes(s_Net* sn);/*gets total number of nodes*/
 protected:
 	int m_nLev;
 	int* m_numLevNodes;/*num of nodes in each level + num of hanging nodes has length m_nLev+1*/
