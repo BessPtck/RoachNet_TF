@@ -31,6 +31,7 @@ public:
 
 	inline bool Err(unsigned char ecode) { return (ecode != ECODE_OK); }
 	inline bool RetOk(const unsigned char err_code) const { return (err_code == ECODE_OK); }
+	inline bool IsAbort(const unsigned char err_code) const { return (err_code == ECODE_ABORT); }
 	inline bool IsErrFail(const unsigned char err_code) const { return ((err_code&ECODE_FAIL) == ECODE_FAIL); }
 	inline bool IsUserErrAbort(const unsigned char err_code) const { return ((err_code&(ECODE_USERERR_ABORT | ECODE_FAIL)) == ECODE_USERERR_ABORT); }
 	void SetFailErr(const unsigned char sub_err_code) { m_obj_err = m_obj_err | (sub_err_code | ECODE_FAIL); }
