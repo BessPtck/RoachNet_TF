@@ -65,9 +65,49 @@ unsigned char NNet::spawn(s_CNnets* nets) {
 		err=preSetWeights(nets);
 	return err;
 }
+void NNet::despawn(s_CNnets* nets) {
+	if (nets == NULL)
+		return;
+	if (m_HexEyeGen == NULL || m_NetGen == NULL)
+		return;
+	for (int i_net = 0; i_net < m_N_nets; i_net++) {
+		if (nets->net[i_net] != NULL) {
+			m_NetGen->despawn(nets->net[i_net]);
+			delete nets->net[i_net];
+		}
+		nets->net[i_net] = NULL;
+	}
+	if (nets->eye != NULL) {
+		m_HexEyeGen->despawn(nets->eye);
+		delete nets->eye;
+	}
+	nets->eye = NULL;
+	nets->release();
+}
+void NNet::setOneHexExDim() {
+	float r_half = m_r / 2.f;
+	float rs = sqrtf(3.f) / 2.f;
+	rs *= m_r;
+	float sideEx = 0.f;
+	if(m_N_lev>=1)
+		sideEx= Math::powerXseries(0.5f, m_N_lev - 1);
+	sideEx *= rs;
+	sideEx += (3.f * rs);
+	m_footprint = sqrtf(sideEx * sideEx + r_half * r_half);
+}
 
-
-
+void NNet::setExDim(float rEx) {
+	if (m_N_lev < 1) {
+		m_footprint = 0.f;
+	}
+	/* find the size of the lowest level of the eye down to the CENTER of the lowest hex on the lowest hex pattern*/
+	float sideEx = Math::powerXseries(0.5f, m_N_lev - 1);/* 1 + (1/2)+(1/2)^2 + .. (1/2)^(N_lev-1)*/
+	sideEx *= m_r * sqrtf(3.f) / 2.f;
+	/*side ex now extends to the middle of the lowest hex on the outer rim of the eye*/
+	/* rEx is the 'true' size of this lowest hex */
+	float net_footprint_dim = sideEx + rEx;
+	m_footprint = net_footprint_dim;
+}
 unsigned char NNet::preSetWeights(s_CNnets* nets) {
 	if (nets == NULL)
 		return ECODE_ABORT;
@@ -134,4 +174,38 @@ unsigned char NNet::preSetWeightNet(s_Net* net, s_HexEye* eye) {
 		}
 	}
 	return ECODE_OK;
+}
+bool n_NNet::run(s_CNnets* nets, s_HexBasePlateLayer* platesIn, s_HexBasePlateLayer* platesOut, long plate_index) {
+	if (!rootNets(nets, platesIn, plate_index))
+		return false;
+	runRootedNets(nets);
+	/*the number of nets nets->N must be the same as the number of plates out*/
+	for (int net_i = 0; net_i < nets->N; net_i++) {
+		s_HexBasePlate* plateOut = platesOut->get(net_i);
+		s_Hex* hexOut = plateOut->get(plate_index);
+		/*now extract the results of running the nets*/
+		s_Net* net = nets->net[net_i];
+		s_nPlate* netTopPlate = net->getTop();
+		s_nNode* topNode = netTopPlate->get(0);
+		float net_out = topNode->o;
+		/* now fill plate*/
+		hexOut->o = net_out;
+	}
+	return true;
+}
+bool n_NNet::rootNets(s_CNnets* nets, s_HexBasePlateLayer* platesIn, long plate_index) {
+	s_HexEye* eye = nets->eye;
+	s_HexBasePlate* plateIn = platesIn->get(0);
+	if ((n_HexEye::imgRoot(eye, plateIn, plate_index))!=ECODE_OK)
+		return false;
+	s_HexPlate* eyeBase = eye->getBottom();
+	for (int net_i = 0; net_i < nets->N; net_i++) {
+		n_Net::rootNNet(nets->net[net_i], eyeBase, platesIn);
+	}
+	return true;
+}
+void n_NNet::runRootedNets(s_CNnets* nets) {
+	for (int net_i = 0; net_i < nets->N; net_i++) {
+		n_Net::runRootedNNet(nets->net[net_i]);
+	}
 }

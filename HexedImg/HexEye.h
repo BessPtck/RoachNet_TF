@@ -59,7 +59,7 @@ public:
 	inline int getNLevels() { return m_N_levels; }
 	inline long getNHexes(int i) { return m_N_hexes[i]; }
 protected:
-	/*dimensions of eyes this HexEye will initiate*/
+	/* dimensions of eyes this HexEye will initiate */
 	float m_r;
 	float m_R;/*largest R*/
 	int   m_N_levels;
@@ -73,13 +73,13 @@ protected:
 	/*                                            */
 	unsigned char initEye(s_HexEye* neye);
 	void          releaseEye(s_HexEye* neye);
-	/*helpers to init Eye */
+	/* helpers to init Eye */
 	long numHexInLevel(long N_prev, int N_level);
 	float sizeOfLevel(int N_level);
-	/*                    */
+	/*                     */
 
 	unsigned char genEye(s_HexEye* neye);
-	/*helpers to genEye              */
+	/* helpers to genEye             */
 	int collectNebIndexes(s_HexPlate* lev, int i_top, s_2pt_i neb[]);
 	void genLowerPattern(s_Node* lev_nds[], float Rs, s_2pt& loc, s_2pt_i neb[], int num_neb, int& indx);
 	/*** helpers to genEye helpers ***/

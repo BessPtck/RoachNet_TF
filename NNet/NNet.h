@@ -34,6 +34,10 @@ public:
 										   geo metric connections of the eye */
 	void          despawn(s_CNnets* nets);
 
+	void          setOneHexExDim();/*assumes init has been run, finds approx max dim with slight overage if base of eye is extened by one hex
+								     appropriate for seeding on the luna plates*/
+	void          setExDim(float rEx);/*assumes init has been run, sets dim to extend the distance of rEx beyond the eye base of these nets*/
+
 	unsigned char setFile(string& inf);
 	unsigned char importFile(s_CNnets* nets);/* is run during spawn if file name already set, else can be run after spawn
 											    import the weight and b values from the file in the nets of CNnets*/
@@ -50,6 +54,7 @@ protected:
 	int    m_N_lev;/*number of levels of the nets and the eyes*/
 	int    m_N_lev_trigger;/*if this is greater than 0 then there is a trigger node to be set*/
 
+	float m_footprint;/*dimension of the net this spawns at the base of the net, if 0 has not been filled*/
 
 	unsigned char preSetWeights(s_CNnets* nets);
 	/*helpers to preSetWeights */
@@ -60,7 +65,7 @@ namespace n_NNet {
 	bool run(s_CNnets* nets, s_HexBasePlateLayer* platesIn, s_HexBasePlateLayer* platesOut, long plate_index);/* assumes all platesIn have the same geometery*/
 
 	/** helpers to run **/
-	bool rootNets(s_CNnets* nets, s_HexBasePlate* plateIn, long plate_index);
-	bool runRootedNets(s_CNnets* nets);
+	bool rootNets(s_CNnets* nets, s_HexBasePlateLayer* platesIn, long plate_index);
+	void runRootedNets(s_CNnets* nets);
 }
 #endif

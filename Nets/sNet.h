@@ -96,17 +96,21 @@ public:
 													  hanging nodes from lowest net level correspond to number
 													  of plates that the net will connect to */
 	void          despawn(s_Net* sn);
+
+
 	int getTotalNumWeights(s_Net* sn);/*assmes this node has been constructed for a nnet
 									  gets the total number of weights in the net counting all the weights in each level including the hanging weights*/
 	int getTotalNumNodes(s_Net* sn);/*gets total number of nodes*/
 	int dumpWeightChain(s_Net* sn, float ws[]);/*dumps all the weights in to the ws array starting from 
 											   the first node on top layer and going down through the layers of the net*/
-	bool importWeightChain(s_Net* sn, float ws[], int len_ws);/* imports the same as dumped, length must equal at least total num weights*/
-	bool importBChain(s_Net* sn, float bs[], int len_bs);/* imports the b offsets for each node, lenght must equal total number of nodes*/
+	bool importWeightChain(s_Net* sn, float ws[], int len_ws);/* imports the same as dumped, length must equal at least total num weights */
+	bool importBChain(s_Net* sn, float bs[], int len_bs);/* imports the b offsets for each node, length must equal total number of nodes */
+
 protected:
 	int m_nLev;
 	int* m_numLevNodes;/*num of nodes in each level + num of hanging nodes has length m_nLev+1*/
 	int  m_numHanging;
+
 	unsigned char connDownNet(s_Net* sn);/*connects the levels in the s_Net to each of their lower levels
 								           assumes that the number of hanging nodes in mem is the same as the number of nodes in the lower plate*/
 };

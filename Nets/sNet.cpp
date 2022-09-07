@@ -56,7 +56,7 @@ void n_Net::rootNNet(s_Net* net, s_HexPlate* eye_base, s_HexBasePlateLayer* plat
 	int net_hanging = 0;
 	s_nNode* net_node = net_base->get(0);
 	for (long hex_i = 0; hex_i < eye_base->N; hex_i++) {
-		long plate_index = eye_base->nodes[hex_i]->thislink;
+		long plate_index = eye_base->nodes[hex_i]->nodes[0]->thislink;
 		for (int plate_i = 0; plate_i < plates->N; plate_i++) {
 			net_node->nodes[net_hanging] = plates->get(plate_i)->getNd(plate_index);
 			net_hanging++;
@@ -298,6 +298,74 @@ int sNet::getTotalNumNodes(s_Net* sn) {
 		num_nodes += sn->lev[i]->N;
 	}
 	return num_nodes;
+}
+int sNet::dumpWeightChain(s_Net* sn, float ws[]) {
+	if (sn == NULL || ws==NULL)
+		return -1;
+	if (sn->N < 2)
+		return 0;
+	int N_weights = 0;
+	for (int i_lev = 0; i_lev < sn->N; i_lev++) {
+		s_nPlate* np = sn->lev[i_lev];
+		if (np == NULL)
+			return N_weights;
+		for (int i_nd = 0; i_nd < np->N; i_nd++) {
+			s_nNode* nd = np->get(i_nd);
+			if (nd != NULL) {
+				for (int i_hang = 0; i_hang < nd->N; i_hang++) {
+					float w = nd->w[i_hang];
+					ws[N_weights] = w;
+					N_weights++;
+				}
+			}
+		}
+	}
+	return N_weights;
+}
+bool sNet::importWeightChain(s_Net* sn, float ws[], int len_ws) {
+	if (sn == NULL || ws == NULL)
+		return -1;
+	if (sn->N < 2)
+		return (len_ws < 1) ? true : false;
+	if (len_ws < 1)
+		return false;
+	int i_weights = 0;
+	for (int i_lev = 0; i_lev < sn->N; i_lev++) {
+		s_nPlate* np = sn->lev[i_lev];
+		if (np == NULL)
+			return false;
+		for (int i_nd = 0; i_nd < np->N; i_nd++) {
+			s_nNode* nd= np->get(i_nd);
+			if (nd != NULL) {
+				for (int i_hang = 0; i_hang < nd->N; i_hang++) {
+					nd->w[i_hang] = ws[i_weights];
+					i_weights++;
+					if (i_weights >= len_ws)
+						return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+bool sNet::importBChain(s_Net* sn, float bs[], int len_bs) {
+	if (sn == NULL || bs == NULL || len_bs<1)
+		return false;
+	int i_b = 0;
+	for (int i_lev = 0; i_lev < sn->N; i_lev++) {
+		s_nPlate* np = sn->lev[i_lev];
+		if (np == NULL)
+			return false;
+		for (int i_nd = 0; i_nd < np->N; i_nd++) {
+			s_nNode* nd = np->get(i_nd);
+			if (nd != NULL) {
+				nd->b = bs[i_b];
+				if (i_b >= len_bs)
+					return false;
+			}
+		}
+	}
+	return true;
 }
 unsigned char sNet::connDownNet(s_Net* sn) {
 	int num_net_lev = sn->N;
