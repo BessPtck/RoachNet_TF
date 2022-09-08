@@ -55,5 +55,6 @@ protected:
 	inline void SetStateOpen() { m_obj_state = BASE_STATE_OPEN | m_obj_state; }
 	inline void SetStateClosed() { m_obj_state = (m_obj_state & BASE_STATE_OPEN_NOT); }
 
+	void Zero_Memory(void* mem_ptr, int byte_size);
 };
 #endif

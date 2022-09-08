@@ -3,6 +3,7 @@
 #define TUPLES_H
 #include <iostream>
 #include <fstream>
+#include <cstdio>/*added for targa*/
 #include <string>
 #include <thread>
 #include <ctgmath>
