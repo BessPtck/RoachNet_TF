@@ -5,6 +5,9 @@
 #include "../Base/Base.h"
 #endif
 
+#define CTARGAIMAGE_IMGFILEPRE "img"
+#define CTARGAIMAGE_IMGFILESUF ".tga"
+
 enum TGATypes
 {
 	TGA_NODATA = 0,
