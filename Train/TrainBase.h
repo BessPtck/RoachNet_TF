@@ -2,6 +2,15 @@
 #ifndef TRAINBASE_H
 #define TRAINBASE_H
 
+#ifndef HEXIMG_H
+#include "../HexedImg/HexImg.h"
+#endif
+#ifndef COLOR_H
+#include "../HexedImg/Color.h"
+#endif
+#ifndef LUNA_H
+#include "../Luna/Luna.h"
+#endif
 #ifndef NNET_H
 #include "../NNet/NNet.h"
 #endif
@@ -66,6 +75,30 @@ protected:
 
 	int        m_N_Xs;/*number of input values to train the nnet*/
 	int        m_N_weights;/*number of pre weights to be dumped*/
+
+	/***                                                       ***/
+	/*chain used to run the net for the sample train Xs*/
+	/*data plate objects */
+	Img* m_img;
+	s_HexBasePlate* m_hexedImg;
+	s_HexBasePlateLayer* m_ColPlates;/* the pointer here point to s_ColPlate instead of HexBasePlate */
+	s_HexBasePlateLayer* m_lunPlates;/* currently there will be only one layer of luna plates*/
+	s_HexBasePlateLayer* m_L1Plates;/* output of running 1st layer of mini net */
+	s_HexBasePlateLayer* m_L2Plates;
+
+	/*data net type objects*/
+	s_Luna* m_lunaNets;
+	s_CNnets* m_L1Nets;
+	s_CNnets* m_L2Nets;
+
+	/*gen objects*/
+	HexImg* m_genHexImg;
+	Col* m_genCol;
+	Luna* m_genLuna;
+	NNet* m_genL1NNet;
+	NNet* m_genL2NNet;
+	/*** some of the above may remain NULL only used by inherited ***/
+	/***                                                       ***/
 
 	unsigned char readInCodes();
 	unsigned char genImgs();
