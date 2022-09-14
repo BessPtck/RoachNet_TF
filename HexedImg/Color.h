@@ -18,17 +18,24 @@ public:
 	Col();
 	~Col();
 
-	unsigned char init(int nCols);
+	unsigned char init(HexImg* genHexImg, int nCols);
 	void          release();
 
-	unsigned char spawn(s_ColPlateLayer* colPlates);/*this layer will own its plates*/
+	unsigned char addCol(s_ColWheel* col);
+
+	unsigned char spawn(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates);/*this layer will own its plates*/
 	void          despawn(s_ColPlateLayer* colPlates);
 
 	unsigned char samLayer(s_ColPlateLayer* colPlates, int plate_i[], s_HexBasePlateLayer* sLayer);/* assembles col plates with indexs as indicated by plate_i[] into the sLayer; 
 																								      sLayer does not own its indexes*/
 	void          desamLayer(s_HexBasePlate* sLayer);/*sets the indexes back to null so no release is attempted*/
 protected:
-	ColPlate** m_Cols;
+	/*not owned*/
+	HexImg* m_genHexImg;
+
+	/*owned*/
+	ColPlate*  m_genCol;
+	s_ColWheel* m_Cols;
 	int        m_N_Cols;
 	int        m_mem_Cols;/*number of pointer in mem*/
 };

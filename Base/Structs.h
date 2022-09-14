@@ -127,7 +127,7 @@ public:
 	~s_HexPlate();
 
 	unsigned char         init(long nNodes);
-	unsigned char         init(const s_HexPlate* other);
+	virtual unsigned char init(const s_HexPlate* other);/*down connections will still point to wherever the original pointed, the web is fixed however*/
 	void                  initRs(float inRhex);
 	void                  release();/*assumes that the plate owns its subnodes if not NULL*/
 
@@ -167,6 +167,8 @@ class s_HexBasePlate : public s_HexPlate {
 public:
 	s_HexBasePlate();
 	~s_HexBasePlate();
+
+	unsigned char init(const s_HexBasePlate* other);
 
 	unsigned char initRowStart(long rowN);
 	void          releaseRowStart();

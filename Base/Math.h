@@ -34,6 +34,7 @@ namespace utilStruct {
 	inline void zeroRGB(s_rgb& rgb) { rgb.r = 0x00; rgb.g = 0x00; rgb.b = 0x00; }
 	inline void zero2pt_i(s_2pt_i& spt) { spt.x0 = 0; spt.x1 = 0; }
 	inline void zero2pt(s_2pt& pt) { pt.x0 = 0.f; pt.x1 = 0.f; }
+	inline void copy2pt_i(s_2pt_i& ptcopy, const s_2pt_i& pt) { ptcopy.x0 = pt.x0; ptcopy.x1 = pt.x1; }
 	inline void copy2pt(s_2pt& ptcopy, const s_2pt& pt) { ptcopy.x0 = pt.x0; ptcopy.x1 = pt.x1; }
 }
 namespace Math {

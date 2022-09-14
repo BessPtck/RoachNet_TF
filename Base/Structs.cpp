@@ -543,12 +543,31 @@ int n_HexPlate::turnCornerStackedPlates(s_Hex** nd_hi, s_Hex** nd_lo, int fwd_we
 	return next_web_i;
 }
 
-s_HexBasePlate::s_HexBasePlate() :RowStart(NULL), RowStart_is(NULL), Row_N(0), Col_d(0.f), Row_d(0.f)
+s_HexBasePlate::s_HexBasePlate() :N_wHex(0), N_hHex(0), RowStart(NULL), RowStart_is(NULL), Row_N(0), Col_d(0.f), Row_d(0.f)
 {
 	;
 }
 s_HexBasePlate::~s_HexBasePlate() {
 	;
+}
+unsigned char s_HexBasePlate::init(const s_HexBasePlate* other) {
+	unsigned char err = s_HexPlate::init((s_HexPlate*)other);
+	if (err != ECODE_OK)
+		return err;
+	this->N_wHex = other->N_wHex;
+	this->N_hHex = other->N_hHex;
+	if (other->RowStart != NULL && other->RowStart_is != NULL && other->Row_N >= 1) {
+		err = initRowStart(other->Row_N);
+		if (err != ECODE_OK)
+			return err;
+		for (long ii = 0; ii < this->Row_N; ii++) {
+			utilStruct::copy2pt(this->RowStart[ii], other->RowStart[ii]);
+			utilStruct::copy2pt_i(this->RowStart_is[ii], other->RowStart_is[ii]);
+		}
+		this->Col_d = other->Col_d;
+		this->Row_d = other->Row_d;
+	}
+	return ECODE_OK;
 }
 unsigned char s_HexBasePlate::initRowStart(long rowN) {
 	if (RowStart != NULL || RowStart_is != NULL)
