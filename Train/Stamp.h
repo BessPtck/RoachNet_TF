@@ -23,10 +23,16 @@ using namespace std;
 
 struct s_stampKey {
 	int   ID;/*stamp number, matches number of image file*/
+	float r;/*scale of small r for the img, the base hex size*/
+	float Dim;/*dim of the full size of the stamp*/
 	float ang;/*angle of line perp to stamp edge vs line directly pointing left*/
 	float R;/*radius of stamp*/
 	float opening_ang;/*opening ang for rounded corner*/
+	float y;/* target value for this stamp*/
 };
+namespace n_stampKey {
+	void clear(s_stampKey& key);
+}
 
 /* generates the stamp images that represent the aftermath of the col plate*/
 class Stamp : public Base {
@@ -37,12 +43,13 @@ public:
 	unsigned char init(
 		float imgDim,
 		float scale_r, /*radius that sets the overall scale, should be set to the base radus that the luna pattern is ran on*/
-		float openingAngDivisor=2.f, /*divids PI to get opening angle*/
-		float radCmul=2.f,/*multiplicative factor that increases the circle radius each cycle*/
-		float numAngDiv=12.f,
-		float numCicleRadii=5.f,
-		int   finalOpeningAngs=3,
+		float openingAngDivisor = 2.f, /*divids PI to get opening angle*/
+		float radCmul = 2.f,/*multiplicative factor that increases the circle radius each cycle*/
+		float numAngDiv = 12.f,
+		float numCircleRadii = 5.f,
+		float minCircleRadSF = 2.f,
 		float maxFinalOpeningAng= 1.1f,
+		int   numfinalOpeningAngs = 3,
 		float thickness_in_2Runits=2.f,
 		float falloff_scale_factor_2Runits=1.f,
 		float gaussSigma_in_thicknessUnits=1.f
@@ -52,7 +59,19 @@ public:
 	unsigned char run();
 protected:
 	/*init parameters*/
+	/*inital parameters tht define the corners*/
+	float m_cornerOpeningAng;/*PI/openingAngDivisor*/
+	float m_radCmul;/*multiplies circle radius to increase it */
+	float m_numAngDiv;
+	float m_numCircleRadii;
+	float m_minCircleRadius;
+	/*parameters used by the final series of angles that go down to a rounded line*/
 	float m_maxFinalOpeningAng;
+	int   m_NFinalOpeningAngs;
+	/* used for the corners with hole */
+	float m_thickness;
+	float m_falloffScale;
+	float m_gaussSigma;
 
 	string m_imgFile;/*this will update as each img is written*/
 
@@ -75,13 +94,15 @@ protected:
 	s_2pt m_Uline_perp1;/*points perp to line 1 into region beetween lines*/
 	s_2pt m_Uline_perp2;/* "                  2         "                 */
 	s_2pt m_UcenterIn;/*points inward from center of where lines would intersect, should be set to 1,0*/
-	float m_thickness;
+
 	bool  m_cosFalloff;
 	bool  m_linearFalloff;
 	bool  m_gaussFalloff;
 	bool  m_sharpFalloff;
 
 	unsigned char stampRoundedCornerImgs();
+	unsigned char dumpSignalKeys();/*run after stamp RoundedCorner Images dumps the keys for each signal stamp
+								     most of the angled stamps will be used as background */
 
 	bool stampsWHoles(const s_2pt& center, float ang, float circle_scale, float opening_ang);
 	bool stampFinalAngSpread(const s_2pt& center, float ang, float circle_scale, float opening_ang_start);

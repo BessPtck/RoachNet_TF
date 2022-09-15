@@ -1,6 +1,36 @@
 #include "Stamp.h"
-bool Stamp::stampFinalAngSpread(const s_2pt& center, float ang, float circle_scale, float opening_ang_start) {
 
+void n_stampKey::clear(s_stampKey& key) {
+	key.ID = -1;
+	key.r = 0.f;
+	key.Dim = 0.f;
+	key.ang = 0.f;
+	key.R = 0.f;
+	key.opening_ang = 0.f;
+	key.y = -1.f;
+}
+
+unsigned char Stamp::stampRoundedCornerImgs() {
+	s_2pt center = { 0.f, 0.f };
+	float DAng = 2.f * PI / m_numAngDiv;
+	int n_ang = (int)floorf(m_numAngDiv);
+	float cur_ang = 0.f;
+	int n_circleRadii = (int)floorf(m_numCircleRadii);
+
+	for (int i_ang = 0; i_ang < n_ang; i_ang++) {
+		float cur_circleRadius = m_minCircleRadius;
+		for (int i_rad = 0; i_rad < n_circleRadii; i_rad++) {			
+			if (!stampsWHoles(center, cur_ang, cur_circleRadius, m_cornerOpeningAng))
+				break;
+			if (!stampFinalAngSpread(center, cur_ang, cur_circleRadius, m_cornerOpeningAng))
+				break;
+			cur_circleRadius *= m_radCmul;
+		}
+		if (cur_circleRadius > m_max_circle_radius)
+			m_max_circle_radius = cur_circleRadius;
+		cur_ang += DAng;
+	}
+	return ECODE_OK;
 }
 bool Stamp::stampsWHoles(const s_2pt& center, float ang, float circle_scale, float opening_ang) {
 	m_cosFalloff = false;
@@ -20,6 +50,18 @@ bool Stamp::stampsWHoles(const s_2pt& center, float ang, float circle_scale, flo
 	m_gaussFalloff = false;
 	m_sharpFalloff = true;
 	stampImg(center, ang, circle_scale, opening_ang);
+	return true;
+}
+bool Stamp::stampFinalAngSpread(const s_2pt& center, float ang, float circle_scale, float opening_ang_start) {
+	if (circle_scale > m_maxFinalOpeningAng)
+		return true;
+	float opening_ang_end = m_maxFinalOpeningAng;
+
+	float dAng = (opening_ang_end - opening_ang_start) / ((float)m_NFinalOpeningAngs);
+	for (int i = m_NFinalOpeningAngs - 1; i >= 0; i--) {
+		float opening_ang = opening_ang_end - ((float)i) * dAng;
+		stampsWHoles(center, ang, circle_scale, opening_ang);
+	}
 	return true;
 }
 bool Stamp::stampImg(const s_2pt& center, float ang, float circle_rad, float opening_ang) {
@@ -65,12 +107,85 @@ unsigned char Stamp::setRoundedCorner(const s_2pt& center, float radius, float a
 	return ECODE_OK;
 }
 
+bool Stamp::isUnderLine(const s_2pt& pt, const s_2pt& Uline_perp) {
+	s_2pt VtoPt = vecMath::v12(m_line_intersect, pt);
+	return vecMath::dot(VtoPt, Uline_perp) >= 0;
+}
+bool Stamp::isInsideCurveHalf(const s_2pt& pt) {
+	s_2pt VtoPt = vecMath::v12(m_circle_half_pt, pt);
+	return vecMath::dot(VtoPt, m_UcenterIn) >= 0;
+}
+
+float Stamp::distFromRoundedCorner(const s_2pt& pt) {
+	float dist = 0.f;
+	if (isInsideCurveHalf(pt)) {
+		dist = distFromClosestLine(pt);
+	}
+	else
+		dist = distFromCircle(pt);
+	return dist;
+}
+float Stamp::distFromClosestLine(const s_2pt& pt) {
+	float dist1 = distFromLine(pt, m_Uline_perp1);
+	float dist2 = distFromLine(pt, m_Uline_perp2);
+	return (dist1 >= dist2) ? dist2 : dist1;
+}
+
 float Stamp::stampIntensity(const s_2pt& pt) {
 	s_2pt convPt = vecMath::convBasis(m_UrevBasis0, m_UrevBasis1, pt);
 	float intensity = RoundedCornerIntensityNoRot(convPt);
 	if (!isInRoundedCornerNoRot(convPt))
 		return stamp_zero_intensity;
 	return intensity;
+}
+
+bool Stamp::isInRoundedCornerNoRot(const s_2pt& pt) {
+	bool isInLines = isUnderLine(pt, m_Uline_perp1) && isUnderLine(pt, m_Uline_perp2);
+	if (!isInLines)
+		return false;
+	if (isInsideCurveHalf(pt))
+		return true;
+	return isInCircle(pt);
+}
+float Stamp::RoundedCornerIntensityNoRot(const s_2pt& pt) {
+	float dist = distFromRoundedCorner(pt);
+	if (dist < m_thickness)
+		return 1.f;
+	float in_lin = 1.f;
+	float in_cos = 1.f;
+	float in_gau = 1.f;
+	float in_line = 1.f;
+	float scale = m_falloffScale;
+	if (scale < 0.f)
+		return 1.f;
+	if (m_linearFalloff) {
+		in_lin = 1.f - (dist - m_thickness) / scale;
+		if (in_lin < 0.f)
+			in_lin = 0.f;
+		if (in_lin > 1.f)
+			in_lin = 1.f;
+	}
+	if (m_cosFalloff) {
+		float delta_dist = dist - m_thickness;
+		if (delta_dist < 0.f)
+			delta_dist = 0.f;
+		float cmet = (PI / 2.f) * (delta_dist / scale);
+		in_cos = cosf(cmet);
+		if (in_cos < 0.f)
+			in_cos = 0.f;
+	}
+	if (m_gaussFalloff) {
+		float delta_dist = dist - m_thickness;
+		if (delta_dist < 0.f)
+			delta_dist = 0.f;
+		float gmet = delta_dist / scale;
+		in_gau = Math::GaussianOneMax(gmet, m_gaussSigma / scale);
+	}
+	if (m_sharpFalloff) {
+		if (dist > m_thickness)
+			in_line = 0.f;
+	}
+	return in_lin * in_cos * in_gau * in_line;
 }
 
 unsigned char Stamp::renderStampToImg(Img* img) {
