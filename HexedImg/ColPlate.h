@@ -8,6 +8,7 @@
 struct s_ColWheel {
 	float pixMax;/* maximum value for the pixels usually 255 for 8 bits*/
 
+	/*this block is reset by resetCol*/
 	float Dhue; /*distance in cos (needs to be greater than 0) */
 	float DI;   /* intensity */
 	float DSat; /*  saturation */
@@ -16,14 +17,14 @@ struct s_ColWheel {
 	s_2pt Hue_target;/*rgb vector in colorwheel*/
 	float Sat_target;
 
-	float stepSteepness;
+	float finalScaleFactor;
 
 	/*red, green, blue vectors in colwheel space*/
 	s_2pt Ur;
 	s_2pt Ug; 
 	s_2pt Ub;
 
-	float m_DhueRes;/* 2 - m_Dhue */
+	float DhueRes;/* 2 - m_Dhue also reset by resetCol*/
 };
 
 class s_ColPlate : public s_HexBasePlate {
@@ -61,5 +62,12 @@ namespace n_ColWheel {
 }
 namespace n_ColPlate {
 	bool run(s_HexBasePlate* hexedImg, s_ColPlate* colPlate, long plate_index);
+
+	float findColDistances(s_ColWheel& cw, float rgb[]);
+	/*helpers to findColDistances*/
+	s_2pt findColWheelHue(s_ColWheel& cw, float rgb[]); /*find vector rgb in color wheel hue vector, vector direction determines color, length determines intensity*/
+	float findHueDistance(s_ColWheel& cw, s_2pt& hueV, float hueLen);
+	float findIDistance(s_ColWheel& cw, float rgb[]);
+	float findSatDistance(s_ColWheel& cw, float rgb[], float hueLen);
 }
 #endif
