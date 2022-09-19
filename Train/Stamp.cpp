@@ -5,11 +5,15 @@ void n_stampKey::clear(s_stampKey& key) {
 	key.r = 0.f;
 	key.Dim = 0.f;
 	key.ang = 0.f;
+	key.y = -1.f;
+	key.matchRot = false;
+	key.smudge = false;
+}
+void n_rCornKey::clear(s_rCornKey& key) {
+	n_stampKey::clear(key.key);
 	key.R = 0.f;
 	key.opening_ang = 0.f;
-	key.y = -1.f;
 }
-
 unsigned char Stamp::stampRoundedCornerImgs() {
 	s_2pt center = { 0.f, 0.f };
 	float DAng = 2.f * PI / m_numAngDiv;

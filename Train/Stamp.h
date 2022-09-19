@@ -8,30 +8,55 @@
 #ifndef CTARGAIMAGE_H
 #include "../FileIO/CTargaImage.h"
 #endif
+#ifndef PARSETXT_H
+#include "../FileIO/ParseTxt.h"
+#endif
 #ifndef IMG_H
 #include "../Base/Img.h"
 #endif
 
 //#define CTARGAIMAGE_IMGFILEPRE "img"
 //#define CTARGAIMAGE_IMGFILESUF ".tga"
-#define STAMP_DIR "../dDump/L1"
-#define STAMP_KEY "key.txt"/*key file contains information about each numbered image stamp*/
+#define STAMP_DIR "../dDump"
+#define STAMP_ROUNDCORN_DIR "L1"
+#define STAMP_KEY "stampkey.txt"/*key file contains information about each numbered image stamp*/
+#define STAMP_MASTER_KEY "stampskey.txt"/*master key file that tells info like how many files are there
+                                    has form numfiles, num no-rot sig, num back, num rot sig*/
 const float stamp_zero_intensity = 0.f;
 const float stamp_max_ang_rad = 3.1f;
 
 using namespace std;
 
+struct s_stampsKey {
+	int N;
+	int N_sig;
+	int N_bak;
+	int N_pre_sig;
+	int N_sig_bak_rot;/*number of times each signal should be rotated off to become background*/
+	float min_sig_bak_rotang;/*min angle in rad that signal must rotate away to be considere background*/
+	float sig_bak_rotang_jitter;/*span in rad the rotated backround signal can miss the exact an rot target*/
+	int N_bak_smudge;
+	int N_sig_smudge;/*if zero then signal is equalized to the background*/
+};
 struct s_stampKey {
 	int   ID;/*stamp number, matches number of image file*/
 	float r;/*scale of small r for the img, the base hex size*/
 	float Dim;/*dim of the full size of the stamp*/
-	float ang;/*angle of line perp to stamp edge vs line directly pointing left*/
-	float R;/*radius of stamp*/
-	float opening_ang;/*opening ang for rounded corner*/
+	float ang;/*angle of line perp to stamp edge vs line directly pointing left, or just reference angle*/
 	float y;/* target value for this stamp*/
+	float matchRot;/* if zero (or negative) no rotation needed, if non zero then stamp needs to be rotated befor pre nnet run */
+	bool  smudge;/* true if stamp should be smudged NOT USED*/
+};
+struct s_rCornKey {
+	s_stampKey key;
+	float R;/*radius of rounded corner*/
+	float opening_ang;/*opening ang for rounded corner*/
 };
 namespace n_stampKey {
 	void clear(s_stampKey& key);
+}
+namespace n_rCornKey {
+	void clear(s_rCornKey& key);
 }
 
 /* generates the stamp images that represent the aftermath of the col plate*/
@@ -58,6 +83,10 @@ public:
 
 	unsigned char run();
 protected:
+	/*owned helper classes*/
+	CTargaImage* m_tgaIO;
+	ParseTxt* m_parse;
+
 	/*init parameters*/
 	/*inital parameters tht define the corners*/
 	float m_cornerOpeningAng;/*PI/openingAngDivisor*/
@@ -76,8 +105,9 @@ protected:
 	string m_imgFile;/*this will update as each img is written*/
 
 	float       m_imgDim;
+	/*owned*/
 	Img**       m_stampImgs;
-	s_stampKey* m_Keys;
+	s_rCornKey* m_Keys;
 	int         m_stampN;
 	s_2pt&      m_stampImgCenter;
 
@@ -101,6 +131,7 @@ protected:
 	bool  m_sharpFalloff;
 
 	unsigned char stampRoundedCornerImgs();
+	unsigned char dumpStampImgs();/*run after stampRoundedCorner, dumps images of stamps, with name CTARGAIMAGE_IMGFILEPRE ID CTARGAIMAGE_IMGFILESUF*/
 	unsigned char dumpSignalKeys();/*run after stamp RoundedCorner Images dumps the keys for each signal stamp
 								     most of the angled stamps will be used as background */
 

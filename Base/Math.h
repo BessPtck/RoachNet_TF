@@ -49,6 +49,15 @@ namespace Math {
 	float Gaussian(float pt, float norm_const, float center = 0.f);
 	float GaussianOneMax(float pt, float norm_const);
 	float GaussianFast(float pt, float sqrt2_ExpConst, float Norm, float center);
+
+	/*random*/
+	void timeSeed() { std::srand(std::time(0)); }
+	float randGausPt(float center, float norm, float gIntegrate = 10.f);/*returns a point with the prob of a gausian around the central norm,
+																	does this by dividing the gaussian into g_integrate boxes and mapping the prob of each box
+																	to an expanded line, then uses the linear rand() function*/
+	float randGausSpanAng(float start_and, float end_ang, float range_span=0.f);/*if span is zero then angle is assumed to be equally probable for the mag of the range/2PI */
+
+	s_2pt randGaus2D(const s_2pt& center, float norm);/*returns a point using randGausPt for the radius */
 }
 namespace arrMath {
 	/*puts value into array at i and moves array forward after the value*/
