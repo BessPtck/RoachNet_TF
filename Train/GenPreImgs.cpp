@@ -1,19 +1,33 @@
 #include "GenPreImgs.h"
 
-unsigned char GenPreImgs::fillSmudgeKeys() {
+unsigned char GenPreImgs::fillStampKeys() {
 	if (!readMasterKey())
 		return ECODE_ABORT;
-	m_smudgeKey = new s_preImgsSmudgeKey[m_masterKey.N];
 	unsigned char err = ECODE_OK;
+	m_stampKey = new s_stampKey[m_masterKey.N];
 	for (int i = 0; i < m_masterKey.N; i++) {
 		s_datLine dline;
-		s_stampKey stamp_key;
-		if (!importStampKey(dline, stamp_key)) {
+		if (!importStampKey(dline, m_stampKey[i])) {
 			err = ECODE_ABORT;
 			break;
 		}
+	}
+	return ECODE_OK;
+}
+unsigned char GenPreImgs::statCalcSmudgeKeys() {
+	float sigRotBak = sigRotBack();
+	float numBakafterSmudge = bakAfterSmudge();
+	m_N_total_sig = sigSmudge(sigRotBak, numBakafterSmudge);
+	m_N_total_bak = bakTotal(sigRotBak, numBakafterSmudge);
+	m_N_smudge_bak = m_masterKey.N_bak_smudge;
+	m_N_smudge_sig = m_masterKey.N_sig_smudge;
+	int m_len_smudgeKey = m_N_total_bak + m_N_total_sig;
+	m_smudgeKey = new s_preImgsSmudgeKey[m_len_smudgeKey];
+	for (int i_raw = 0; i_raw < m_masterKey.N; i_raw++) {
+		s_stampKey& stamp_key = m_stampKey[i_raw];
 
 	}
+
 }
 float GenPreImgs::sigRotBack() {
 	float N_per_sig_rotBak = (float)m_masterKey.N_sig_bak_rot;
@@ -38,5 +52,20 @@ int GenPreImgs::sigSmudge(float sigRotBak, float numBakafterSmudge) {
 	return (int)floorf(bak_to_sig);
 }
 int GenPreImgs::bakTotal(float sigRotBak, float numBakafterSmudge) {
-	return (int)celf(sigRotBak + numBakafterSmudge);
+	return (int)ceilf(sigRotBak + numBakafterSmudge);
+}
+
+unsigned char GenPreImgs::processStampKey(const s_stampKey & key) {
+	if (key.y > 0.f) {
+		if (key.matchRot < 0.0000001f)
+			processSignalStampKey(key);
+		else if (!m_preRot)
+			processRotSignalStampKey(key);
+	}
+	else
+		processBakStampKey(key);
+	return ECODE_OK;
+}
+unsigned char GenPreImgs::processSignalStampKey(const s_stampKey& key) {
+
 }
