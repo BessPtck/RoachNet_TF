@@ -44,8 +44,10 @@ struct s_stampKey {
 	float Dim;/*dim of the full size of the stamp*/
 	float ang;/*angle of line perp to stamp edge vs line directly pointing left, or just reference angle*/
 	float y;/* target value for this stamp*/
-	float matchRot;/* if zero (or negative) no rotation needed, if non zero then stamp needs to be rotated befor pre nnet run */
-	bool  smudge;/* true if stamp should be smudged NOT USED*/
+
+	float maxDim;/*max size of image, used when image is slid by offset to make sure image is still large enough to account for slide*/
+	float preRot;/*either flag 1 if needs rotation 0 if fixed, or angle img needs to be rotated by before it is processed as stamap*/
+	s_2pt offset;
 };
 struct s_rCornKey {
 	s_stampKey key;
@@ -54,6 +56,7 @@ struct s_rCornKey {
 };
 namespace n_stampKey {
 	void clear(s_stampKey& key);
+	void copy(s_stampKey& key, const s_stampKey& orig);
 }
 namespace n_rCornKey {
 	void clear(s_rCornKey& key);

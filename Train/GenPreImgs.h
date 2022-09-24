@@ -7,11 +7,6 @@
 
 using namespace std;
 
-struct s_preImgsSmudgeKey {
-	int ID;
-	s_2pt* offset;
-	s_2pt* ang_offset;
-};
 
 class GenPreImgs : public Base {
 public:
@@ -28,12 +23,16 @@ protected:
 	string m_Dir;
 	bool   m_preRot;/*true if training without signal that is not all aligned, uses only 1st signal set, aligned signal set, to train*/
 
+
 	s_stampsKey         m_masterKey;
-	s_stampKey*         m_stampKey;/*len will be masterKey.N*/
-	int                 m_keyIndx;/*index of key currently being processed*/
-	s_preImgsSmudgeKey* m_smudgeKey;
-	int                 m_len_smudgeKey;
-	int                 m_index_smudgeKey;/*current index in the m_smudgeKey array*/
+	s_stampKey*         m_stampKey;
+	int                 m_len_stampKey;
+	s_stampKey*         m_stampBakFromSigRotKey;/*stamps key with all the rotated backgrounds*/
+	int                 m_len_stampBakFromSigRotKey;
+	s_stampKey*         m_smudgeStampKey;/* key including both the stampKey's and the RotBakKeys appropriately smudged
+										      this is the key that is ready to use to generate the preTrain dataset*/
+	int                 m_len_smudgeStampKey;
+	int                 m_keyIndx;/*index of key currently being processed, is used at diffent stages of the program for different key sets*/
 
 	int                 m_N_total_sig;
 	int                 m_N_total_bak;
@@ -41,13 +40,23 @@ protected:
 	int                 m_N_smudge_sig;/*number of times to smudge the signal for a given signal*/
 	/* num smudge for the rotated signal to bak imgs is right now just 1 */
 
-	unsigned char fillStampKeys();
+	unsigned char getStampKeys();/*reads in stampkeys and generates the m_stampKey array*/
 	void          clearStampKeys();
-	unsigned char statCalcSmudgeKeys();/*requires fillStampKeys to have been run first*/
+	unsigned char genBakFromSigRot();/*looks at all the used signal keys and filles m_stampBakFromSigRotKey with the proper data for these as rotated backgrounds*/
+	void          clearBakFromSigRot();
+	unsigned char statCalcSmudgeKeys();/*takes the stamps from Key and from BakFromSigRotKey and smears these stamps appropriately to generate
+									     the keys int smudgeStampKey each of which generates a stamp to be used to generate the training data set*/
 	void          clearSmudgeKeys();/*reverses mem aloc from statCalcSmudgeKeys*/
 
+	/*helpers to getStampKeys*/
 	bool readMasterKey();/*reads the values into m_masterKey, check that signal is 1 or greater*/
-	/*run after readMasterKey*/
+	bool getKeyFromLine(const s_datLine& dline, s_stampKey& key);
+	bool addKey(const s_stampKey& key);/*checks against preRot whether key should be added*/
+	/*helpers to genBakFromSigRot */
+	bool genRotBakFromSigStamp(s_stampKey& key);
+									   
+									   
+									   /*run after readMasterKey*/
 	float sigRotBack();
 	float bakAfterSmudge();
 	int sigSmudge(float sigRotBak, float numBakafterSmudge);/*get signal smudge from masterKey*/

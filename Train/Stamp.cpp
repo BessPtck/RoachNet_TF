@@ -6,8 +6,21 @@ void n_stampKey::clear(s_stampKey& key) {
 	key.Dim = 0.f;
 	key.ang = 0.f;
 	key.y = -1.f;
-	key.matchRot = false;
-	key.smudge = false;
+
+	key.maxDim = 0.f;
+	key.preRot = 0.f;
+	utilStruct::zero2pt(key.offset);
+}
+void n_stampKey::copy(s_stampKey& key, const s_stampKey& orig) {
+	key.ID = orig.ID;
+	key.r = orig.r;
+	key.Dim = orig.Dim;
+	key.ang = orig.ang;
+	key.y = orig.y;
+
+	key.maxDim = orig.maxDim;
+	key.preRot = orig.preRot;
+	utilStruct::copy2pt(key.offset, orig.offset);
 }
 void n_rCornKey::clear(s_rCornKey& key) {
 	n_stampKey::clear(key.key);

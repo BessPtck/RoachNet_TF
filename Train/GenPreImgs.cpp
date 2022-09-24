@@ -1,5 +1,48 @@
 #include "GenPreImgs.h"
 
+unsigned char GenPreImgs::getStampKeys() {
+	if (!readMasterKey())
+		return ECODE_ABORT;
+	/*read in the data*/
+	s_datLine* dlines = new s_datLine[m_masterKey.N];
+	int num_lines = m_parse->readCSV(dlines, m_masterKey.N);
+	if (num_lines < 1)
+		return ECODE_ABORT;
+	/*now put the lines in the stampkeys*/
+	int num_sig = m_preRot ? m_masterKey.N_pre_sig : m_masterKey.N_sig;
+	m_len_stampKey = num_sig + m_masterKey.N_bak;
+	m_stampKey = new s_stampKey[m_len_stampKey];
+	int key_i = 0;
+	s_stampKey curKey;
+	for (int i = 0; i < num_lines; i++) {
+		n_stampKey::clear(curKey);
+		if (getKeyFromLine(dlines[i], curKey)) {
+			if (addKey(curKey)) {
+				n_stampKey::copy(m_stampKey[key_i], curKey);
+				key_i++;
+			}
+		}
+	}
+	delete[] dlines;
+	m_len_stampKey = key_i;
+	if (key_i < 1)
+		return ECODE_ABORT;
+	return ECODE_OK;
+}
+void GenPreImgs::clearStampKeys() {
+	if (m_stampKey != NULL) {
+		delete[] m_stampKey;
+	}
+	m_stampKey = NULL;
+	m_len_stampKey = 0;
+}
+unsigned char GenPreImgs::genBakFromSigRot() {
+	m_keyIndx = 0;/*this will be used for m_stampBakFromSigRotKey*/
+}
+bool GenPreImgs::genRotBakFromSigStamp(s_stampKey& key) {
+
+}
+
 unsigned char GenPreImgs::fillStampKeys() {
 	if (!readMasterKey())
 		return ECODE_ABORT;
