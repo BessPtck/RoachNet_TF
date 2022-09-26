@@ -28,6 +28,10 @@ const float stamp_max_ang_rad = 3.1f;
 using namespace std;
 
 struct s_stampsKey {
+	float r;/*scale of small r for the img, the base hex size*/
+	float Dim;/*dim of the full size of the stamp*/
+	float maxDim;/*max size of image, used when image is slid by offset to make sure image is still large enough to account for slide*/
+
 	int N;
 	int N_sig;
 	int N_bak;
@@ -37,15 +41,16 @@ struct s_stampsKey {
 	float sig_bak_rotang_jitter;/*span in rad the rotated backround signal can miss the exact an rot target*/
 	int N_bak_smudge;
 	int N_sig_smudge;/*if zero then signal is equalized to the background*/
+
+	float y_sig_bak_rot;
+
+	float smudge_sigma_divisor;/*number like 2 that divides r for the sigma of the gaussian that determines the offset*/
 };
 struct s_stampKey {
 	int   ID;/*stamp number, matches number of image file*/
-	float r;/*scale of small r for the img, the base hex size*/
-	float Dim;/*dim of the full size of the stamp*/
 	float ang;/*angle of line perp to stamp edge vs line directly pointing left, or just reference angle*/
 	float y;/* target value for this stamp*/
 
-	float maxDim;/*max size of image, used when image is slid by offset to make sure image is still large enough to account for slide*/
 	float preRot;/*either flag 1 if needs rotation 0 if fixed, or angle img needs to be rotated by before it is processed as stamap*/
 	s_2pt offset;
 };

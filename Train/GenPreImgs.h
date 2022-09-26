@@ -38,7 +38,12 @@ protected:
 	int                 m_N_total_bak;
 	int                 m_N_smudge_bak;/*number of times to smudge the background for any given background*/
 	int                 m_N_smudge_sig;/*number of times to smudge the signal for a given signal*/
+	int                 m_N_extra_smudge_sig;/*overflow of signal that needs to be added if sigal doesn't divide evenly into bak*/
 	/* num smudge for the rotated signal to bak imgs is right now just 1 */
+
+	/*gaussian integrals used to calculate different values*/
+	s_gaussianInt       m_ang_jitter_I;
+	s_gaussianInt       m_offset_I;
 
 	unsigned char getStampKeys();/*reads in stampkeys and generates the m_stampKey array*/
 	void          clearStampKeys();
@@ -54,20 +59,12 @@ protected:
 	bool addKey(const s_stampKey& key);/*checks against preRot whether key should be added*/
 	/*helpers to genBakFromSigRot */
 	bool genRotBakFromSigStamp(s_stampKey& key);
-									   
-									   
-									   /*run after readMasterKey*/
-	float sigRotBack();
-	float bakAfterSmudge();
-	int sigSmudge(float sigRotBak, float numBakafterSmudge);/*get signal smudge from masterKey*/
-	int bakTotal(float sigRotBak, float numBakafterSmudge);
+	float smudgedRotBakFromSigAng(float ang);
+	/*helpers to statCalcSmudeKeys*/
+	bool setupGaussIntegrals();
+	void releaseGaussIntegrals();
+	bool genSmudgedKeysFromKey(const s_stampKey& key, int N_smudge);
 
-	bool importStampKey(const s_datLine& dline, s_stampKey& key);
 
-	unsigned char processStampKey(const s_stampKey& key);
-	/*helpers to processStampKey */
-	unsigned char processSignalStampKey(const s_stampKey& key);
-	unsigned char processRotSignalStampKey(const s_stampKey& key);/*setup smudge keys for a signal key that requires rotation*/
-	unsigned char processBakStampKey(const s_stampKey& key);
 };
 #endif

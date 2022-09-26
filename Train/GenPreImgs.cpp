@@ -38,77 +38,140 @@ void GenPreImgs::clearStampKeys() {
 }
 unsigned char GenPreImgs::genBakFromSigRot() {
 	m_keyIndx = 0;/*this will be used for m_stampBakFromSigRotKey*/
-}
-bool GenPreImgs::genRotBakFromSigStamp(s_stampKey& key) {
-
-}
-
-unsigned char GenPreImgs::fillStampKeys() {
-	if (!readMasterKey())
-		return ECODE_ABORT;
-	unsigned char err = ECODE_OK;
-	m_stampKey = new s_stampKey[m_masterKey.N];
-	for (int i = 0; i < m_masterKey.N; i++) {
-		s_datLine dline;
-		if (!importStampKey(dline, m_stampKey[i])) {
-			err = ECODE_ABORT;
-			break;
+    /*figure out how many background from rotated signal there will be total*/
+	int num_sig = m_preRot ? m_masterKey.N_pre_sig : m_masterKey.N_sig;
+	int total_num_sig_bak_rot = m_masterKey.N_sig_bak_rot * num_sig;
+	m_stampBakFromSigRotKey = new s_stampKey[total_num_sig_bak_rot];
+	m_len_stampBakFromSigRotKey = total_num_sig_bak_rot;
+	/*                                                                      */
+	for (int i_stamps = 0; i_stamps < m_len_stampKey; i_stamps++) {
+		if (m_stampKey[i_stamps].y > 0.f) {
+			if (!genRotBakFromSigStamp(m_stampKey[i_stamps]))
+				return ECODE_FAIL;
 		}
 	}
+	m_len_stampBakFromSigRotKey = m_keyIndx;/*this should already be identical*/
 	return ECODE_OK;
+}
+void GenPreImgs::clearBakFromSigRot() {
+	if (m_stampBakFromSigRotKey != NULL) {
+		delete[] m_stampBakFromSigRotKey;
+	}
+	m_stampBakFromSigRotKey = NULL;
+	m_len_stampBakFromSigRotKey = 0;
 }
 unsigned char GenPreImgs::statCalcSmudgeKeys() {
-	float sigRotBak = sigRotBack();
-	float numBakafterSmudge = bakAfterSmudge();
-	m_N_total_sig = sigSmudge(sigRotBak, numBakafterSmudge);
-	m_N_total_bak = bakTotal(sigRotBak, numBakafterSmudge);
+	setupGaussIntegrals();
+	int num_bak_pre_smudge = m_masterKey.N_bak + m_len_stampBakFromSigRotKey;
+	m_N_total_bak = num_bak_pre_smudge * m_masterKey.N_bak_smudge;
+	if (m_N_total_bak < 1)
+		return ECODE_ABORT;
 	m_N_smudge_bak = m_masterKey.N_bak_smudge;
-	m_N_smudge_sig = m_masterKey.N_sig_smudge;
-	int m_len_smudgeKey = m_N_total_bak + m_N_total_sig;
-	m_smudgeKey = new s_preImgsSmudgeKey[m_len_smudgeKey];
-	for (int i_raw = 0; i_raw < m_masterKey.N; i_raw++) {
-		s_stampKey& stamp_key = m_stampKey[i_raw];
-
+	int num_sig_pre_smudge = m_preRot ? m_masterKey.N_pre_sig : m_masterKey.N_sig;
+	if (m_masterKey.N_sig_smudge > 1) {
+		num_sig_pre_smudge *= m_masterKey.N_sig_smudge;
+		m_N_total_sig = num_sig_pre_smudge;
+		m_N_smudge_sig = m_masterKey.N_sig_smudge;
+		m_N_extra_smudge_sig = 0;
 	}
-
-}
-float GenPreImgs::sigRotBack() {
-	float N_per_sig_rotBak = (float)m_masterKey.N_sig_bak_rot;
-	float N_sigRotBak = m_preRot ? N_per_sig_rotBak * m_masterKey.N_pre_sig : N_per_sig_rotBak * m_masterKey.N_sig;
-	return N_sigRotBak;
-}
-float GenPreImgs::bakAfterSmudge() {
-	float N_per_smudge_Bak = (float)m_masterKey.N_bak_smudge;
-	if (N_per_smudge_Bak < 1.f)
-		return (float)m_masterKey.N_bak;
-	float pre_smudge_N_bak = (float)m_masterKey.N_bak;
-	float total_bak_after_smudge = pre_smudge_N_bak * N_per_smudge_Bak;
-	return total_bak_after_smudge;
-}
-int GenPreImgs::sigSmudge(float sigRotBak, float numBakafterSmudge) {
-	if (m_masterKey.N_sig_smudge > 0.f)
-		return (float)m_masterKey.N_sig_smudge;
-	float N_bak = numBakafterSmudge;
-	N_bak += sigRotBak;
-	float N_sig = m_preRot ? (float)m_masterKey.N_pre_sig : (float)m_masterKey.N_sig;
-	float bak_to_sig = N_bak / N_sig;
-	return (int)floorf(bak_to_sig);
-}
-int GenPreImgs::bakTotal(float sigRotBak, float numBakafterSmudge) {
-	return (int)ceilf(sigRotBak + numBakafterSmudge);
-}
-
-unsigned char GenPreImgs::processStampKey(const s_stampKey & key) {
-	if (key.y > 0.f) {
-		if (key.matchRot < 0.0000001f)
-			processSignalStampKey(key);
-		else if (!m_preRot)
-			processRotSignalStampKey(key);
+	else  if (num_sig_pre_smudge < m_N_total_bak) {
+		/*find how much sig must be smudged per background to make the sig and the background roughly equal*/
+		float num_bak_per_sig = ((float)m_N_total_bak) / ((float)num_sig_pre_smudge);
+		int num_bak_per_sig = (int)floorf(num_bak_per_sig);
+		m_N_smudge_sig = num_bak_per_sig;
+		m_N_extra_smudge_sig = m_N_total_bak - (m_N_smudge_sig * num_sig_pre_smudge);
+		m_N_total_sig = m_N_total_bak;
 	}
-	else
-		processBakStampKey(key);
+	m_len_smudgeStampKey = m_N_total_sig + m_N_total_bak;
+	m_smudgeStampKey = new s_stampKey[m_len_smudgeStampKey];
+	m_keyIndx = 0;
+	/*smudge the signal*/
+	s_stampKey* firstSigKey = NULL;
+	for (int i_stamp = 0; i_stamp < m_len_stampKey; i_stamp++) {
+		s_stampKey& key = m_stampKey[i_stamp];
+		if (key.y > 0.f) {
+			if (firstSigKey == NULL)
+				firstSigKey = &(m_stampKey[i_stamp]);
+			genSmudgedKeysFromKey(key, m_N_smudge_sig);
+		}
+	}
+	if (firstSigKey == NULL)
+		return ECODE_ABORT;
+	genSmudgedKeysFromKey(*firstSigKey, m_N_extra_smudge_sig);
+	/* now smudge the background */
+	/*once for the reg back*/
+	for (int i_stamp = 0; i_stamp < m_len_stampKey; i_stamp++) {
+		s_stampKey& key = m_stampKey[i_stamp];
+		if (key.y < 0.f)
+			genSmudgedKeysFromKey(key, m_N_smudge_bak);
+	}
+	/*once for the sig rot bak*/
+	for (int i_stamp = 0; i_stamp < m_len_stampKey; i_stamp++) {
+		s_stampKey& key = m_stampBakFromSigRotKey[i_stamp];
+		genSmudgedKeysFromKey(key, m_N_smudge_bak);
+	}
+	m_len_smudgeStampKey = m_keyIndx;
 	return ECODE_OK;
 }
-unsigned char GenPreImgs::processSignalStampKey(const s_stampKey& key) {
-
+void GenPreImgs::clearSmudgeKeys() {
+	if (m_smudgeStampKey != NULL) {
+		delete[] m_smudgeStampKey;
+	}
+	m_smudgeStampKey = NULL;
+	releaseGaussIntegrals();
 }
+bool GenPreImgs::genRotBakFromSigStamp(s_stampKey& key) {
+	int N_rot_div = m_masterKey.N_sig_bak_rot;
+	N_rot_div -= 1;
+	if (N_rot_div < 1)
+		return false;
+	float N_sig_bak_rot = (float)m_masterKey.N_sig_bak_rot;
+	float ang_range = 2.f * PI - 2.f * m_masterKey.min_sig_bak_rotang;
+	if (ang_range <= 0.f)
+		return false;
+	ang_range = Math::Ang2PI(ang_range);
+	float dang = ang_range / ((float)N_rot_div);
+	float ang = m_masterKey.min_sig_bak_rotang + key.preRot;
+
+	for (int i_div = 0; i_div < m_masterKey.N_sig_bak_rot; i_div++) {
+		float smudged_ang = smudgedRotBakFromSigAng(ang);
+		ang = Math::Ang2PI(smudged_ang);
+		n_stampKey::copy(m_stampBakFromSigRotKey[m_keyIndx], key);
+		m_stampBakFromSigRotKey[m_keyIndx].preRot = ang;
+		m_stampBakFromSigRotKey[m_keyIndx].y = m_masterKey.y_sig_bak_rot;
+		m_keyIndx++;
+		ang += dang;
+	}
+	return true;
+}
+bool GenPreImgs::setupGaussIntegrals() {
+	if (m_masterKey.smudge_sigma_divisor <= 0.f)
+		return false;
+	float biggestAllowed_offset = m_masterKey.maxDim - m_masterKey.Dim;
+	if (biggestAllowed_offset <= 0.f)
+		return false;
+	n_gaussianInt::init(m_offset_I, m_masterKey.r/m_masterKey.smudge_sigma_divisor,biggestAllowed_offset);
+
+	n_gaussianInt::init(m_ang_jitter_I, m_masterKey.sig_bak_rotang_jitter / m_masterKey.smudge_sigma_divisor, PI);
+	return true;
+}
+void GenPreImgs::releaseGaussIntegrals() {
+	n_gaussianInt::release(m_offset_I);
+	n_gaussianInt::release(m_ang_jitter_I);
+}
+bool GenPreImgs::genSmudgedKeysFromKey(const s_stampKey& key, int N_smudge) {
+	if (N_smudge < 1)
+		return false;
+	/*generate the first identical key*/
+	n_stampKey::copy(m_smudgeStampKey[m_keyIndx], key);
+	m_keyIndx++;
+	int Num = N_smudge - 1;
+	for (int i = 0; i < Num; i++) {
+		n_stampKey::copy(m_smudgeStampKey[m_keyIndx], key);
+		s_2pt gaus_offset = Math::randGaus2D(key.offset, m_offset_I);
+		utilStruct::copy2pt(m_smudgeStampKey[m_keyIndx].offset, gaus_offset);
+		m_keyIndx++;
+	}
+	return true;
+}
+
