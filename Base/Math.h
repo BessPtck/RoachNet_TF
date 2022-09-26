@@ -6,6 +6,8 @@
 #include "Tuples.h"
 #endif
 
+#define MATH_RANDMOD 200
+
 class Img;
 
 struct s_rgba {
@@ -29,6 +31,17 @@ struct s_2pt {
 	float x1;
 };
 
+struct s_gaussianInt { /*this struct is for the integration of a gaussian centered at zero, from zero up to the values held in I */
+	float sigma;
+	float max;/*max value for which the integral is calculated*/
+	float N;/*N-1 is the number of divisions*/
+	float* I;/*integral values beginning at zero and ending at max, array of len N*/
+	float* X;/*X values of erf function, array of len N*/
+};
+namespace n_gaussianInt {
+	bool init(s_gaussianInt& gI, float sigma, float max=0.f, float N=1000);/*if max is left at zero then it is set to 2 sigma*/
+	void release(s_gaussianInt& gI);
+}
 namespace utilStruct {
 	inline void zeroRGBA(s_rgba& rgba) { rgba.r = 0x00; rgba.g = 0x00; rgba.b = 0x00; rgba.a = 0x00; }
 	inline void zeroRGB(s_rgb& rgb) { rgb.r = 0x00; rgb.g = 0x00; rgb.b = 0x00; }
@@ -38,6 +51,7 @@ namespace utilStruct {
 	inline void copy2pt(s_2pt& ptcopy, const s_2pt& pt) { ptcopy.x0 = pt.x0; ptcopy.x1 = pt.x1; }
 }
 namespace Math {
+	float Ang2PI(float ang);/*limits angle to range [0,2PI)*/
 	float StepFunc(float x);/* 1/(1+exp(-x))  takes an x value and returns a step function where - x goes to 0, 0 goes to 1/2 and +x goes to 1*/
 	inline float StepFuncSym(float x) { return tanhf(x); }/* hyper bolic tangent function (exp(x) - exp(-x))/(exp(x) + exp(-x)) 0 at 0, -1 at neg inf reached close to 2, symetric pos 1 at pos inf*/
 	inline float DStepFuncSym(float x) {
@@ -46,18 +60,24 @@ namespace Math {
 	int loop(int i, int n);
 	float power(float x, int y);
 	float powerXseries(float x, int n);/* computes 1+x+x^2+..x^n */
-	float Gaussian(float pt, float norm_const, float center = 0.f);
+	float Gaussian(float pt, float norm_const, float center = 0.f);/*norm const is sigma*/
 	float GaussianOneMax(float pt, float norm_const);
 	float GaussianFast(float pt, float sqrt2_ExpConst, float Norm, float center);
-
+	bool  GaussianNumInt(float norm_const, float max, float N, float I[], float x[]);/*divides gaussian interval into (N-1) spaces and numerically computes the integral from 0 to max
+																		    and fills I with it, also fills X*/
+	bool  GaussianNumInt(s_gaussianInt& Int);/*runs the aboe from values in Int, the arrays have to have already been generated and of len N*/
 	/*random*/
 	void timeSeed() { std::srand(std::time(0)); }
-	float randGausPt(float center, float norm, float gIntegrate = 10.f);/*returns a point with the prob of a gausian around the central norm,
-																	does this by dividing the gaussian into g_integrate boxes and mapping the prob of each box
-																	to an expanded line, then uses the linear rand() function*/
-	float randGausSpanAng(float start_and, float end_ang, float range_span=0.f);/*if span is zero then angle is assumed to be equally probable for the mag of the range/2PI */
+	float randAng(float startRad=0.f, float endRad=2.00001f*PI);/*returns a random angle between start and end, values are given in radians, requires start to end to be */
+	float randGausPt(const s_gaussianInt& gI);/*returns a point with the prob of a gaussian, where the integral of the gaussian is given
+				                         by I
+										 the maximum point this will return possibly is going to be the max dim given in I
+							             this function maps the integrated prob of the linear rand() function
+										 onto the integrated prob of the gaussian */
+	s_2pt randGaus2D(const s_2pt& center, const s_gaussianInt& gI);/*returns a point using randGausPt for the radius */
+	float randGausSpanAng(const s_gaussianInt& gI,float center_ang);/*range around center angle is already set in gI, if point goes over range then starts wrapping*/
 
-	s_2pt randGaus2D(const s_2pt& center, float norm);/*returns a point using randGausPt for the radius */
+
 }
 namespace arrMath {
 	/*puts value into array at i and moves array forward after the value*/

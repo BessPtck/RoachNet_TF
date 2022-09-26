@@ -1,7 +1,48 @@
 #include "Math.h"
 #include "Img.h"
 
+bool n_gaussianInt::init(s_gaussianInt& gI, float sigma, float max, float N) {
+	gI.sigma = fabsf(sigma);
+	if (sigma == 0.f)
+		return false;
+	if (max > 0.f)
+		gI.max = max;
+	else
+		gI.max = 2.f * sigma;
+	gI.N=N;
+	if (N < 1)
+		return false;
+	gI.I = new float[gI.N];
+	gI.X = new float[gI.N];
+	for (int i = 0; i < gI.N; i++) {
+		gI.I[i] = 0.f;
+		gI.X[i] = 0.f;/*this will be set when the integral values are set*/
+	}
+	return true;
+}
+void n_gaussianInt::release(s_gaussianInt& gI) {
+	if (gI.X != NULL) {
+		delete[]gI.X;
+	}
+	gI.X = NULL;
+	if (gI.I != NULL) {
+		delete[] gI.I;
+	}
+	gI.I = NULL;
+	gI.N = 0;
+}
+
 namespace Math {
+	float Ang2PI(float ang) {
+		float _2PI = 2.f * PI;
+		while (ang < 0.f)
+			ang += _2PI;
+		while (ang >= _2PI)
+			ang -= _2PI;
+		if (ang < 0.f)/*fix rounding err*/
+			ang = 0.f;
+		return ang;
+	}
 	float StepFunc(float x) {
 		/*1/(1+exp(-x))*/
 		float expofn = expf(-x);
@@ -58,6 +99,96 @@ namespace Math {
 		expval = expval * expval;
 		float val = expf(-expval);
 		return val * Norm;
+	}
+	bool GaussianNumInt(float norm_const, float max, float N, float I[], float x[]) {
+		if (I == NULL || x==NULL)
+			return false;
+		float numDiv = N - 1.f;
+		if (numDiv < 1.f)
+			return false;
+		float dX = max / numDiv;
+		if (dX <= 0.f)
+			return false;
+		int max_cnt = (int)roundf(numDiv);
+		float X = 0;
+		float gauss = Gaussian(X, norm_const, 0.f);
+		float prev_gauss = gauss;
+		I[0] = 0.f;
+		x[0] = X;
+		for (int i = 1; i < max_cnt; i++) {
+			X += dX;
+			x[i] = X;
+			gauss = Gaussian(X, norm_const, 0.f);
+			float ave_gauss = (gauss + prev_gauss) / 2.f;
+			float dI = ave_gauss * dX;
+			I[i] = I[i - 1] + dI;
+			prev_gauss = gauss;
+		}
+		return true;
+	}
+	bool GaussianNumInt(s_gaussianInt& Int) {
+		if (Int.N < 2)
+			return false;
+		if (Int.I == NULL || Int.N == NULL)
+			return false;
+		return GaussianNumInt(Int.sigma, Int.max, Int.N, Int.I, Int.X);
+	}
+	float randAng(float startRad, float endRad) {
+		int randFullRange = rand() % MATH_RANDMOD;
+		float rand_ = (float)randFullRange;
+		float angRange = endRad - startRad;
+		float _2PI = 2.f * PI;
+		if (fabsf(angRange) < _2PI)
+			angRange = Ang2PI(angRange);
+		else
+			angRange = _2PI;
+		float randmodrange = (float)MATH_RANDMOD;
+		float randdang = rand_ * angRange / randmodrange;
+		return Ang2PI(startRad + randdang);
+	}
+	float randGausPt(const s_gaussianInt& gI) {
+		/*assumes I has already been filled*/
+		if (gI.I == NULL || gI.X == NULL || gI.N < 2)
+			return 0.f;
+		int rand200 = rand() % MATH_RANDMOD;
+		int randModHalf = MATH_RANDMOD / 2;
+		int rand100 = rand200;
+		bool signpos = false;
+		if (rand200 >= randModHalf) {
+			signpos = true;
+			rand100 = rand200 - randModHalf;
+		}
+		/*this will not be exact*/
+		float integratedProb = ((float)rand100) / ((float)randModHalf);
+		int max_i_index = gI.N - 1;
+		float fixGaussFac = gI.I[ max_i_index ];
+		if (fixGaussFac <= 0.f)
+			return 0.f;
+		float retPt = 0.f;
+		for (int i_int = 0; i_int < gI.N; i_int++) {
+			float fixedGaussInt = gI.I[i_int] / fixGaussFac;
+			if (fixedGaussInt >= integratedProb) {
+				/*value loc match*/
+				retPt = gI.X[i_int];
+			}
+		}
+		return signpos ? retPt : -retPt;
+	}
+	s_2pt randGaus2D(const s_2pt& center, const s_gaussianInt& gI) {
+		/*compute a random angle in the range [0,2PI)*/
+		float ang = randAng();
+		/*comput a random gaussian offset*/
+		float dr = randGausPt(gI);
+		/*convert these values to a vector*/
+		s_2pt X = { dr * sinf(ang), dr * cosf(ang) };
+		s_2pt offset = vecMath::add(X, center);
+		return offset;
+	}
+	float randGausSpanAng(const s_gaussianInt& gI, float center_ang) {
+		float randGauss = randGausPt(gI);/*this could be positive or negative*/
+		/*the range must already be set in gI*/
+		float new_ang = center_ang + randGauss;
+		return Ang2PI(new_ang);
 	}
 }
 namespace arrMath {
