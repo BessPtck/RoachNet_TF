@@ -1,7 +1,13 @@
 #include "Math.h"
 #include "Img.h"
-
-bool n_gaussianInt::init(s_gaussianInt& gI, float sigma, float max, float N) {
+void n_gaussianInt::clear(s_gaussianInt& gI) {
+	gI.sigma = 0.f;
+	gI.max = 0.f;
+	gI.N = 0;
+	gI.I = NULL;
+	gI.X = NULL;
+}
+bool n_gaussianInt::init(s_gaussianInt& gI, float sigma, float max, int N) {
 	gI.sigma = fabsf(sigma);
 	if (sigma == 0.f)
 		return false;
@@ -9,11 +15,11 @@ bool n_gaussianInt::init(s_gaussianInt& gI, float sigma, float max, float N) {
 		gI.max = max;
 	else
 		gI.max = 2.f * sigma;
-	gI.N=N;
+	gI.N=(float)N;
 	if (N < 1)
 		return false;
-	gI.I = new float[gI.N];
-	gI.X = new float[gI.N];
+	gI.I = new float[N];
+	gI.X = new float[N];
 	for (int i = 0; i < gI.N; i++) {
 		gI.I[i] = 0.f;
 		gI.X[i] = 0.f;/*this will be set when the integral values are set*/
@@ -184,7 +190,7 @@ namespace Math {
 		s_2pt offset = vecMath::add(X, center);
 		return offset;
 	}
-	float randGausSpanAng(const s_gaussianInt& gI, float center_ang) {
+	float randGausJitterAng(const s_gaussianInt& gI, float center_ang) {
 		float randGauss = randGausPt(gI);/*this could be positive or negative*/
 		/*the range must already be set in gI*/
 		float new_ang = center_ang + randGauss;

@@ -5,6 +5,8 @@
 #include "Base.h"
 #endif
 
+const unsigned char IMG_IMGBAK = 0x00;
+
 class Img {
 public:
 	Img();
@@ -37,6 +39,8 @@ public:
 	void   SetColRGB(long x_i, long y_i, uint32_t col);
 	void   AddCol(long index, uint32_t col);
 
+	unsigned char rotate(float ang);
+	unsigned char translate(const s_2pt& dr);
 	unsigned char PrintMaskedImg(long x_i, long y_j, const Img& pImg, const s_rgb& rgb);
 	unsigned char PrintSquare(long x_i, long y_j, int size, s_rgba& rgba);
 	unsigned char DrawLine(s_2pt_i& pt0, s_2pt_i& pt1, s_rgb& rgba);
@@ -66,5 +70,10 @@ protected:
 	s_rgba UintToRGBA(uint32_t col);
 	s_rgb  UintToRGB(uint32_t col);
 
+	s_rgb nineAve(s_2pt& R, unsigned char* Im);
+	void nineAveFromPtOffset(s_2pt& R, s_2pt_i& img_pt, float perc[]); /*finds how each of the 9 squares around a center
+															   square should contribute to the value in the new 
+															   square that does not perfectly overlay the old mesh
+															   perc has 9 values corresponding to the square above and below the img*/
 };
 #endif

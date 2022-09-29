@@ -144,6 +144,9 @@ bool GenPreImgs::genRotBakFromSigStamp(s_stampKey& key) {
 	}
 	return true;
 }
+float GenPreImgs::smudgedRotBakFromSigAng(float ang) {
+	return Math::randGausJitterAng(m_ang_jitter_I, ang);
+}
 bool GenPreImgs::setupGaussIntegrals() {
 	if (m_masterKey.smudge_sigma_divisor <= 0.f)
 		return false;

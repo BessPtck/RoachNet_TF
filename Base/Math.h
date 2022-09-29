@@ -39,7 +39,8 @@ struct s_gaussianInt { /*this struct is for the integration of a gaussian center
 	float* X;/*X values of erf function, array of len N*/
 };
 namespace n_gaussianInt {
-	bool init(s_gaussianInt& gI, float sigma, float max=0.f, float N=1000);/*if max is left at zero then it is set to 2 sigma*/
+	void clear(s_gaussianInt& gI);
+	bool init(s_gaussianInt& gI, float sigma, float max=0.f, int N=1000);/*if max is left at zero then it is set to 2 sigma*/
 	void release(s_gaussianInt& gI);
 }
 namespace utilStruct {
@@ -75,7 +76,7 @@ namespace Math {
 							             this function maps the integrated prob of the linear rand() function
 										 onto the integrated prob of the gaussian */
 	s_2pt randGaus2D(const s_2pt& center, const s_gaussianInt& gI);/*returns a point using randGausPt for the radius */
-	float randGausSpanAng(const s_gaussianInt& gI,float center_ang);/*range around center angle is already set in gI, if point goes over range then starts wrapping*/
+	float randGausJitterAng(const s_gaussianInt& gI,float center_ang);/*range around center angle is already set in gI, if point goes over range then starts wrapping*/
 
 
 }
