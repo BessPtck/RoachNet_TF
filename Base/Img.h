@@ -5,7 +5,6 @@
 #include "Base.h"
 #endif
 
-const unsigned char IMG_IMGBAK = 0x00;
 
 class Img {
 public:
@@ -19,10 +18,10 @@ public:
 	void   clearToChar(unsigned char cval);
 	void release();
 
-	s_rgba GetRGBA(long x_i, long y_i);
-	s_rgb  GetRGB(long x_i, long y_i);
-	s_rgba GetRGBA(long index);
-	s_rgb  GetRGB(long index);
+	s_rgba GetRGBA(long x_i, long y_i) const;
+	s_rgb  GetRGB(long x_i, long y_i) const;
+	s_rgba GetRGBA(long index) const;
+	s_rgb  GetRGB(long index) const;
 	uint32_t GetCol(long index);
 	uint32_t GetColRGBA(long index);
 	uint32_t GetColRGB(long index);
@@ -48,7 +47,7 @@ public:
 	inline long getWidth() const { return m_width; }
 	inline long getHeight() const { return m_height; }
 	inline unsigned char* getImg() { return m_img; }
-	inline long getIndex(long i, long j) { long index = j * m_width + i; return (index < m_pixSize) ? index : -1; }
+	inline long getIndex(long i, long j) const{ long index = j * m_width + i; return (index < m_pixSize) ? index : -1; }
 	unsigned char setChar(long x, long y, unsigned char pt);
 	inline unsigned char setChar(long index, unsigned char pt) { m_img[index] = pt; return ECODE_OK; }
 	inline unsigned char getChar(long index) const { return m_img[index]; }
@@ -70,10 +69,6 @@ protected:
 	s_rgba UintToRGBA(uint32_t col);
 	s_rgb  UintToRGB(uint32_t col);
 
-	s_rgb nineAve(s_2pt& R, unsigned char* Im);
-	void nineAveFromPtOffset(s_2pt& R, s_2pt_i& img_pt, float perc[]); /*finds how each of the 9 squares around a center
-															   square should contribute to the value in the new 
-															   square that does not perfectly overlay the old mesh
-															   perc has 9 values corresponding to the square above and below the img*/
+
 };
 #endif

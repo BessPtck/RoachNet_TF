@@ -65,6 +65,8 @@ protected:
 	void releaseGaussIntegrals();
 	bool genSmudgedKeysFromKey(const s_stampKey& key, int N_smudge);
 
-
+	/******************/
+	/*image processing done after initialization an per spawn*/
+	bool getImgFromTGA(Img* img, int ID);/*image will be the one indicated by the id*/
 };
 #endif

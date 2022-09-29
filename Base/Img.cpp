@@ -60,17 +60,17 @@ void Img::release()
 	}
 	m_img = NULL;
 }
-s_rgba Img::GetRGBA(long x_i, long y_i)
+s_rgba Img::GetRGBA(long x_i, long y_i) const
 {
 	long index = y_i * m_width + x_i;
 	return GetRGBA(index);
 }
-s_rgb Img::GetRGB(long x_i, long y_i)
+s_rgb Img::GetRGB(long x_i, long y_i) const
 {
 	long index = y_i * m_width + x_i;
 	return GetRGB(index);
 }
-s_rgba Img::GetRGBA(long index) {
+s_rgba Img::GetRGBA(long index) const{
 	long i = index * m_colorMode;
 	s_rgba rgba;
 	rgba.r = m_img[i];
@@ -79,7 +79,7 @@ s_rgba Img::GetRGBA(long index) {
 	rgba.a = m_img[i + 3];
 	return rgba;
 }
-s_rgb Img::GetRGB(long index) {
+s_rgb Img::GetRGB(long index) const{
 	long i = index * m_colorMode;
 	s_rgb rgb;
 	rgb.r = m_img[i];
@@ -221,6 +221,8 @@ uint32_t Img::GetColRGB(long x_i, long y_i) {
 	return rgbToUint(rgb);
 }
 unsigned char Img::rotate(float ang) {
+	if (m_img == NULL)
+		return ECODE_ABORT;
 	if (m_pixSize < 1)
 		return ECODE_ABORT;
 	if (m_width < 1 || m_height < 1)
@@ -245,9 +247,55 @@ unsigned char Img::rotate(float ang) {
 			s_2pt img_xy = { (float)i_x, (float)i_y };
 			s_2pt R = vecMath::v12(center, img_xy);
 			s_2pt R_base = vecMath::convBasis(rev_U0, rev_U1, R);
-
+			s_rgb trans_col;
+			s_2pt_i base_dummy;
+			imgMath::nineAveRGB(R_base, center, this, base_dummy, trans_col);
+			long index = i_y * m_width + i_x;
+			index *= m_colorMode;
+			new_img[index] = trans_col.r;
+			new_img[index + 1] = trans_col.g;
+			new_img[index + 2] = trans_col.b;
 		}
 	}
+	delete[] m_img;
+	m_img = new_img;
+	return ECODE_OK;
+}
+unsigned char Img::translate(const s_2pt& dr) {
+	if (m_img == NULL)
+		return ECODE_ABORT;
+	if (m_pixSize < 1)
+		return ECODE_ABORT;
+	if (m_width < 1 || m_height < 1)
+		return ECODE_ABORT;
+	if (m_width * m_height > m_pixSize)
+		return ECODE_ABORT;
+	long total_size = m_colorMode * m_pixSize;
+	unsigned char* new_img = new unsigned char[total_size];
+	if (new_img == NULL)
+		return ECODE_FAIL;
+	for (long i = 0; i < m_pixSize; i++)
+		new_img[i] = IMG_IMGBAK;
+	s_2pt dr_rev = { -dr.x0, -dr.x1 };
+	s_2pt center = { ((float)m_width) / 2.f, ((float)m_height) / 2.f };
+	for (long i_y = 0; i_y < m_height; i_y++) {
+		for (long i_x = 0; i_x < m_width; i_x++) {
+			s_2pt img_xy = { (float)i_x, (float)i_y };
+			s_2pt R = vecMath::v12(center, img_xy);
+			s_2pt R_base = vecMath::add(R, dr_rev);
+			s_rgb trans_col;
+			s_2pt_i base_dummy;
+			imgMath::nineAveRGB(R_base, center, this, base_dummy, trans_col);
+			long index = i_y * m_width + i_x;
+			index *= m_colorMode;
+			new_img[index] = trans_col.r;
+			new_img[index + 1] = trans_col.g;
+			new_img[index + 2] = trans_col.b;
+		}
+	}
+	delete[] m_img;
+	m_img = new_img;
+	return ECODE_OK;
 }
 unsigned char Img::PrintMaskedImg(long x_i, long y_j, const Img& pImg, const s_rgb& rgb)
 {
@@ -385,68 +433,5 @@ s_rgb Img::UintToRGB(uint32_t col) {
 	rgb.b = (unsigned char)b;
 	return rgb;
 }
-s_rgb Img::nineAve(s_2pt& R, unsigned char* Im) {
-	s_rgb retrgb = { IMG_IMGBAK, IMG_IMGBAK, IMG_IMGBAK };
-	float perc[9];
-	s_2pt_i img_pt;
-	nineAveFromPtOffset(R, img_pt, perc);
-	if (img_pt.x0 < 0 || img_pt.x1 < 0)
-		return retrgb;
-	int perc_i = 0;
-	for (long i_y = -1; i_y < 3; i_y++) {
-		for (long i_x = -1; i_x < 3; i_x++) {
-			long img_indx = getIndex(img_pt.x0 - i_x, img_pt.x1 - i_y);
-			if (img_indx >= 0) {
 
-			}
-		}
-	}
-}
-void Img::nineAveFromPtOffset(s_2pt& R, s_2pt_i& img_pt, float perc[]) {
-	for (int i_perc = 0; i_perc < 9; i_perc++)
-		perc[i_perc] = 0.f;
-	float pix_x = floorf(R.x0);
-	float pix_y = floorf(R.x1);
-	img_pt.x0 = (long)pix_x;
-	img_pt.x1 = (long)pix_y;
-	float in_square_x = R.x0 - pix_x;
-	float in_square_y = R.x1 - pix_y;
-	/*find distances to adjoining centers*/
-	float dists[9];
-	int d_i = 0;
-	for (float y_d = -0.5f; y_d <= 1.5f; y_d += 1.f) {
-		for (float x_d = -0.5f; x_d <= 1.5f; x_d += 1.f) {
-			float dx = in_square_x - x_d;
-			float dy = in_square_y - y_d;
-			float max_dx = 0.5f - x_d;
-			float max_dy = 0.5f - y_d;
-			float max_dist = max_dx * max_dx + max_dy * max_dy;
-			dists[d_i] = (max_dist>0.00001f) ? (dx * dx + dy * dy)/max_dist : (dx*dx + dy*dy);/*4 is special*/
-			d_i++;
-		}
-	}
-	float max_center_offset_dist = 0.5f * 0.5f + 0.5f * 0.5f;
-	dists[4] /= max_center_offset_dist;
-	perc[4] = dists[4];
-	float other_squares_perc_fact = 1.f - perc[4];
-	float other_ave_denom = 0.f;
-	for (int i = 0; i < 9; i++) {
-		if (i != 4) {
-			if (dists[i] > 1.f)
-				perc[i] = 0.f;
-			else {
-				other_ave_denom += dists[i];
-			}
-		}
-	}
-	for (int i = 0; i < 9; i++) {
-		if (i != 4) {
-			perc[i] = dists[i] / other_ave_denom;
-			perc[i] *= other_squares_perc_fact;
-		}
-		if (perc[i] > 1.f)
-			perc[i] = 1.f;
-		if (perc[i] < 0.f)
-			perc[i] = 0.f;
-	}
-}
+

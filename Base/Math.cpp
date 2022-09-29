@@ -308,6 +308,14 @@ namespace vecMath {
 }
 
 namespace imgMath {
+	unsigned char add(unsigned char c0, unsigned char c1) {
+		int i0 = (int)c0;
+		int i1 = (int)c1;
+		int isum = i0 + i1;
+		if (isum > 0xFF)
+			isum = 0xFF;
+		return (unsigned char)isum;
+	}
 	s_rgba convToRGBA(float r, float g, float b) {
 		if (r > 255.f)
 			r = 255.f;
@@ -344,6 +352,11 @@ namespace imgMath {
 		Tup3 frgb = rgbToTup3(rgb);
 		frgb *= intensity;
 		return tup3ToRgb(frgb);
+	}
+	void IncRGB(s_rgb& rgb0, const s_rgb& rgb1) {
+		rgb0.r = add(rgb0.r, rgb1.r);
+		rgb0.g = add(rgb0.g, rgb1.g);
+		rgb0.b = add(rgb0.b, rgb1.b);
 	}
 	s_2pt_i convToVint(const s_2pt& vec) {
 		s_2pt_i vi;
@@ -421,6 +434,77 @@ namespace imgMath {
 				y_j++;
 			}
 		}
+	}
+	void nineAveFromPtOffset(const s_2pt& R, const s_2pt& center, s_2pt_i& img_pt, float perc[]) {
+		for (int i_perc = 0; i_perc < 9; i_perc++)
+			perc[i_perc] = 0.f;
+		s_2pt img_xy = vecMath::add(R, center);
+		float pix_x = floorf(img_xy.x0);
+		float pix_y = floorf(img_xy.x1);
+		img_pt.x0 = (long)pix_x;
+		img_pt.x1 = (long)pix_y;
+		float in_square_x = img_xy.x0 - pix_x;
+		float in_square_y = img_xy.x1 - pix_y;
+		/*find distances to adjoining centers*/
+		float dists[9];
+		int d_i = 0;
+		for (float y_d = -0.5f; y_d <= 1.5f; y_d += 1.f) {
+			for (float x_d = -0.5f; x_d <= 1.5f; x_d += 1.f) {
+				float dx = in_square_x - x_d;
+				float dy = in_square_y - y_d;
+				float max_dx = 0.5f - x_d;
+				float max_dy = 0.5f - y_d;
+				float max_dist = max_dx * max_dx + max_dy * max_dy;
+				dists[d_i] = (max_dist > 0.00001f) ? (dx * dx + dy * dy) / max_dist : (dx * dx + dy * dy);/*4 is special*/
+				d_i++;
+			}
+		}
+		float max_center_offset_dist = 0.5f * 0.5f + 0.5f * 0.5f;
+		dists[4] /= max_center_offset_dist;
+		perc[4] = dists[4];
+		float other_squares_perc_fact = 1.f - perc[4];
+		float other_ave_denom = 0.f;
+		for (int i = 0; i < 9; i++) {
+			if (i != 4) {
+				if (dists[i] > 1.f)
+					perc[i] = 0.f;
+				else {
+					other_ave_denom += dists[i];
+				}
+			}
+		}
+		for (int i = 0; i < 9; i++) {
+			if (i != 4) {
+				perc[i] = dists[i] / other_ave_denom;
+				perc[i] *= other_squares_perc_fact;
+			}
+			if (perc[i] > 1.f)
+				perc[i] = 1.f;
+			if (perc[i] < 0.f)
+				perc[i] = 0.f;
+		}
+	}
+	bool nineAveRGB(const s_2pt& R, const s_2pt& center, const Img* img, s_2pt_i& img_pt, s_rgb& retrgb) {
+		retrgb.r = IMG_IMGBAK;
+		retrgb.g = IMG_IMGBAK;
+		retrgb.b = IMG_IMGBAK;
+		float perc[9];
+		nineAveFromPtOffset(R, center, img_pt, perc);
+		if (img_pt.x0 < 0 || img_pt.x1 < 0)
+			return false;
+		int perc_i = 0;
+		for (long i_y = -1; i_y < 3; i_y++) {
+			for (long i_x = -1; i_x < 3; i_x++) {
+				long img_indx = img->getIndex(img_pt.x0 - i_x, img_pt.x1 - i_y);
+				if (img_indx >= 0) {
+					s_rgb rgb = img->GetRGB(img_indx);
+					s_rgb rgb_scaled = mulIntensity(rgb, perc[perc_i]);
+					IncRGB(retrgb, rgb_scaled);
+				}
+				perc_i++;
+			}
+		}
+		return true;
 	}
 }
 namespace hexMath {

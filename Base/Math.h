@@ -7,6 +7,7 @@
 #endif
 
 #define MATH_RANDMOD 200
+const unsigned char IMG_IMGBAK = 0x00;
 
 class Img;
 
@@ -107,9 +108,11 @@ namespace vecMath {
 	float distLineGivenPerp(const s_2pt& line_pt, const s_2pt& line_perp, const s_2pt& pt);/* returns pos distance from line in direction of line_perp, line_perp must be of length 1*/
 }
 namespace imgMath {
+	unsigned char add(unsigned char c0, unsigned char c1);
 	s_rgba convToRGBA(float r, float g, float b);
 	s_rgb  convToRGB(float r, float g, float b);
 	s_rgb mulIntensity(const s_rgb& rgb, float intensity);
+	void IncRGB(s_rgb& rgb0, const s_rgb& rgb1);
 
 	s_2pt_i convToVint(const s_2pt& vec);
 	s_2pt convToVfloat(const s_2pt_i& vi);
@@ -119,6 +122,12 @@ namespace imgMath {
 	void drawPoint(long i, long j, const s_rgba& col, Img* canvas);
 	void drawLine(long i_start, long j_start, long i_end, long j_end, const s_rgba& col, float thickness, Img* canvas);
 	void drawV(const s_2pt& v, long i, long j, const s_rgba& col, float thickness, Img* canvas);
+
+	void nineAveFromPtOffset(const s_2pt& R, const s_2pt& center, s_2pt_i& img_pt, float perc[]); /*finds how each of the 9 squares around a center
+														                       square should contribute to the value in the new
+														                       square that does not perfectly overlay the old mesh
+														                       perc has 9 values corresponding to the square above and below the img*/
+	bool nineAveRGB(const s_2pt& R, const s_2pt& center, const Img* img, s_2pt_i& img_pt, s_rgb& retrgb);
 }
 namespace hexMath {
 	bool inHex(float hexR, float hexRS, const s_2pt hexU[], const s_2pt& center, const s_2pt& pt, float padding = 0.f);
