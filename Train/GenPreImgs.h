@@ -17,6 +17,7 @@ public:
 
 	bool spawn(Img* stamp, s_stampKey& key);/*stamp image must be a non-null initiallized image
 						                      stamp will be cleared */
+	void despawn(Img* stamp);
 protected:
 	ParseTxt*    m_parse;
 	CTargaImage* m_tga;
@@ -67,6 +68,7 @@ protected:
 
 	/******************/
 	/*image processing done after initialization an per spawn*/
-	bool getImgFromTGA(Img* img, int ID);/*image will be the one indicated by the id*/
+	bool getImgFromTGA(Img* img, int ID);/*image will be the one indicated by the id, img points to a non initalized Img object*/
+	void releaseImgFromTGA(Img* img);
 };
 #endif

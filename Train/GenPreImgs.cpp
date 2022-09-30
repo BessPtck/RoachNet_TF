@@ -1,5 +1,20 @@
 #include "GenPreImgs.h"
 
+bool GenPreImgs::spawn(Img* stamp, s_stampKey& key) {
+	if (m_keyIndx >= m_len_smudgeStampKey)
+		return false;
+	n_stampKey::copy(key, m_smudgeStampKey[m_keyIndx]);
+	m_keyIndx++;
+	bool gotImg = getImgFromTGA(stamp, key.ID);
+	if (!gotImg)
+		return false;
+	stamp->rotate(key.preRot);
+	stamp->translate(key.offset);
+	return true;
+}
+void GenPreImgs::despawn(Img* stamp) {
+	releaseImgFromTGA(stamp);
+}
 unsigned char GenPreImgs::getStampKeys() {
 	if (!readMasterKey())
 		return ECODE_ABORT;
@@ -178,3 +193,23 @@ bool GenPreImgs::genSmudgedKeysFromKey(const s_stampKey& key, int N_smudge) {
 	return true;
 }
 
+bool GenPreImgs::getImgFromTGA(Img* img, int ID) {
+	if (img == NULL)
+		return false;
+	string ID_str = to_string(ID);
+	string FilePath = m_Dir + "/" CTARGAIMAGE_IMGFILEPRE + ID_str + CTARGAIMAGE_IMGFILESUF;
+	unsigned char isOK = m_tga->Open(FilePath.c_str());
+	if (Err(isOK))
+		return false;
+	isOK = img->init(m_tga->GetImage(), m_tga->GetWidth(), m_tga->GetHeight(), m_tga->GetColorMode());
+	m_tga->Close();
+	if (Err(isOK)) {
+		return false;
+	}
+	return true;
+}
+void GenPreImgs::releaseImgFromTGA(Img* img) {
+	if (img == NULL)
+		return;
+	img->release();
+}
