@@ -19,6 +19,8 @@ unsigned char GenPreImgs::getStampKeys() {
 	if (!readMasterKey())
 		return ECODE_ABORT;
 	/*read in the data*/
+	string file_dir = m_Dir + "/" + STAMP_KEY;
+	m_parse->setInFile(file_dir);
 	s_datLine* dlines = new s_datLine[m_masterKey.N];
 	int num_lines = m_parse->readCSV(dlines, m_masterKey.N);
 	if (num_lines < 1)
@@ -134,6 +136,51 @@ void GenPreImgs::clearSmudgeKeys() {
 	}
 	m_smudgeStampKey = NULL;
 	releaseGaussIntegrals();
+}
+bool GenPreImgs::readMasterKey() {
+	string file_dir = m_Dir + "/" + STAMP_MASTER_KEY;
+	m_parse->setInFile(file_dir);
+	s_datLine* dlines = new s_datLine[1];
+	n_datLine::clear(dlines[0]);
+	int numlines = m_parse->readCSV(dlines, 1);
+	if (numlines < 1) {
+		if(dlines!=NULL)
+			delete[] dlines;
+		return false;
+	}
+	s_datLine& dl = dlines[0];
+	m_masterKey.r = dl.v[0];
+	m_masterKey.Dim = dl.v[1];
+	m_masterKey.N = (int)roundf(dl.v[2]);
+	m_masterKey.N_sig = (int)roundf(dl.v[3]);
+	m_masterKey.N_bak = (int)roundf(dl.v[4]);
+	m_masterKey.N_pre_sig = (int)roundf(dl.v[5]);
+	m_masterKey.N_sig_bak_rot = (int)roundf(dl.v[6]);
+	m_masterKey.min_sig_bak_rotang = dl.v[7];
+	m_masterKey.sig_bak_rotang_jitter = dl.v[8];
+	m_masterKey.N_bak_smudge = (int)roundf(dl.v[9]);
+	m_masterKey.N_sig_smudge = (int)roundf(dl.v[10]);
+	m_masterKey.y_sig_bak_rot = dl.v[11];
+	m_masterKey.smudge_sigma_divisor = dl.v[12];
+	if (dl.n < 13)
+		return false;
+	return true;
+}
+bool GenPreImgs::getKeyFromLine(const s_datLine& dline, s_stampKey& key) {
+	key.ID = (int)roundf(dline.v[0]);
+	key.ang = dline.v[1];
+	key.y = dline.v[2];
+	key.preRot = dline.v[3];
+	key.offset.x0 = dline.v[4];
+	key.offset.x1 = dline.v[5];
+	return (dline.n >= 6);
+}
+bool GenPreImgs::addKey(const s_stampKey& key) {
+	if (key.preRot < 0.5f)
+		return true;
+	if (m_preRot)
+		return false;
+	return true;
 }
 bool GenPreImgs::genRotBakFromSigStamp(s_stampKey& key) {
 	int N_rot_div = m_masterKey.N_sig_bak_rot;

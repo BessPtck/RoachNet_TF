@@ -24,7 +24,9 @@ public:
 	unsigned char init(
 		const string& inFile, 
 		const string& outFile);
+	unsigned char init();
 	void release();
+	void setInFile(const string& inFile);
 
 	int readCSV(s_datLine dat[], int maxSize=5000);
 	unsigned char writeCSVHeader(std::string& headerStr);

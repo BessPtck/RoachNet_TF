@@ -17,11 +17,19 @@ unsigned char ParseTxt::init(const string& inFile, const string& outFile) {
 	m_header.clear();
 	return ECODE_OK;
 }
+unsigned char ParseTxt::init() {
+	m_inFile = "";
+	m_outFile = "";
+	m_header.clear();
+	return ECODE_OK;
+}
 
 void ParseTxt::release() {
 	;
 }
-
+void ParseTxt::setInFile(const string& inFile) {
+	m_inFile = inFile;
+}
 int ParseTxt::readCSV(s_datLine dat[], int maxSize) {
 	ifstream ffile(m_inFile);
 	string line;
