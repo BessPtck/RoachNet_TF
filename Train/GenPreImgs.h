@@ -14,6 +14,7 @@ public:
 	~GenPreImgs();
 
 	unsigned char init(string& stamp_dir, bool doPreRot_this_pass); /* if true this is a pre-rot pass trying to only use the un-rotated signal, the angled signal will be ignored*/
+	void release();
 
 	bool spawn(Img* stamp, s_stampKey& key);/*stamp image must be a non-null initiallized image
 						                      stamp will be cleared */

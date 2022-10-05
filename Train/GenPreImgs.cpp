@@ -1,5 +1,27 @@
 #include "GenPreImgs.h"
 
+unsigned char GenPreImgs::init(string& stamp_dir, bool doPreRot_this_pass) {
+	m_Dir = STAMP_DIR;
+	m_Dir += "/";
+	m_Dir += stamp_dir;
+	m_preRot = doPreRot_this_pass;
+	unsigned char err = getStampKeys();
+	if (Err(err))
+		return err;
+	err = genBakFromSigRot();
+	if (Err(err))
+		return err;
+	err = statCalcSmudgeKeys();
+	if (Err(err))
+		return err;
+	return ECODE_OK;
+}
+void GenPreImgs::release() {
+	clearSmudgeKeys();
+	clearBakFromSigRot();
+	clearStampKeys();
+}
+
 bool GenPreImgs::spawn(Img* stamp, s_stampKey& key) {
 	if (m_keyIndx >= m_len_smudgeStampKey)
 		return false;
