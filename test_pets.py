@@ -1,6 +1,13 @@
 # this code is based on 
 # https://pyimagesearch.com/2022/02/21/u-net-image-segmentation-in-keras/  author: Margaret Maynard-Reid
-# there is no warenty
+# which is based on "U-Net: Convolutional Networks for Biomedical Image Segmentation" by O Ronneberger, P Fischer and T Brox
+# @article{Maynard-Reid_2022_U-Net,
+#  author = {Margaret Maynard-Reid},
+#  title = {{U-Net} Image Segmentation in Keras},
+#  journal = {PyImageSearch},
+#  year = {2022},
+#  note = {https://pyimg.co/6m5br},
+
 
 import tensorflow as tf
 from tensorflow import keras
@@ -109,7 +116,13 @@ def renderTest(train_batches):
 def create_mask(pred_mask):
     pred_mask=tf.argmax(pred_mask,axis=-1)
     pred_mask=pred_mask[...,tf.newaxis]
-    return pred_mask
+    return pred_mask[0]
+
+def show_predictions(dataset=None, num=1):
+    if dataset:
+        for image, mask in dataset.take(num):
+            pred_mask=unet_model.predict(image)
+            display([image[0], mask[0], create_mask(pred_mask)])
 
 
 def Run_test():
@@ -122,6 +135,7 @@ def Run_test():
 
     train_batches = train_dataset.cache().shuffle(BUFFER_SIZE).batch(BATCH_SIZE).repeat()
     train_batches = train_batches.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+    validation_batches = test_dataset.take(3000).batch(BATCH_SIZE)
     test_batches = test_dataset.skip(3000).take(669).batch(BATCH_SIZE)
 
     #optional show images
@@ -142,5 +156,8 @@ def Run_test():
     TEST_LENGTH = info.splits["test"].num_examples
     VALIDATION_STEPS=TEST_LENGTH//BATCH_SIZE//VAL_SUBSPLITS
 
-    model_history = unet_model.fit(train_batches,epochs=NUM_EPOCHS,steps_per_epoch=STEPS_PER_EPOCH,validation_steps=VALIDATION_STEPS,validation_data=test_batches)
+    model_history = unet_model.fit(train_batches,epochs=NUM_EPOCHS,steps_per_epoch=STEPS_PER_EPOCH,validation_steps=VALIDATION_STEPS,validation_data=validation_batches)
     ###
+
+    #run the u-net on some test data and show the results
+    show_predictions(test_batches,1) #the 2nd is the number of test images to show
