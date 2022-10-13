@@ -1,5 +1,16 @@
 #include "GenPreImgs.h"
 
+GenPreImgs::GenPreImgs() : m_parse(NULL), m_tga(NULL), m_preRot(false), 
+m_stampKey(NULL), m_len_stampKey(0),m_stampBakFromSigRotKey(NULL), m_len_stampBakFromSigRotKey(0), m_smudgeStampKey(NULL), m_len_smudgeStampKey(0), m_keyIndx(0),
+m_N_total_sig(0), m_N_total_bak(0), m_N_smudge_bak(0),m_N_smudge_sig(0),m_N_extra_smudge_sig(0)
+{
+	n_stampKey::clear(m_masterKey);
+	n_gaussianInt::clear(m_ang_jitter_I);
+	n_gaussianInt::clear(m_offset_I);
+}
+GenPreImgs::~GenPreImgs() {
+	;
+}
 unsigned char GenPreImgs::init(string& stamp_dir, bool doPreRot_this_pass) {
 	m_Dir = STAMP_DIR;
 	m_Dir += "/";
