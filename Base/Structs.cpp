@@ -654,6 +654,8 @@ unsigned char s_HexPlateLayer::init(int Nplates) {
 	p = new s_HexPlate * [Nplates];
 	if (p == NULL)
 		return ECODE_FAIL;
+	for (int ii = 0; ii < Nplates; ii++)
+		p[ii] = NULL;
 	N_mem = Nplates;
 	N = 0;
 }

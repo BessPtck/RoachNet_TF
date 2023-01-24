@@ -9,6 +9,8 @@
 
 #define LUNA_WSCALE 3.f//60.f for line finder//1.f
 
+const int LUNA_NUM_LUNAS = 8;/*6 rotated lunas 7th (index 6) is white, 8th (index 7) is black*/
+
 class s_Luna : public s_CNnets {
 public:
 	s_Luna() {	; }
@@ -54,7 +56,7 @@ public:
 	Luna();
 	~Luna();
 
-	unsigned char init(float r, int num_color_plates=1);
+	unsigned char init(float r, int num_color_plates=1);/*r is the dimension of the base hex for the luna pattern*/
 	void release();
 
 	unsigned char spawn(s_Luna* lun);/*initializes the s_Luna and fills it with the luna patterns, the luna owns its own eye*/

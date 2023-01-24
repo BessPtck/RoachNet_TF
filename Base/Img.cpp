@@ -13,6 +13,8 @@ unsigned char Img::init(const Img& other) {
 }
 unsigned char Img::init(const unsigned char img[], long width, long height, long colorMode)
 {
+	if (img == NULL)
+		return ECODE_ABORT;
 	unsigned char err_code = init(width, height, colorMode);
 	if (err_code != ECODE_OK)
 		return err_code;

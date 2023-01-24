@@ -18,12 +18,14 @@
 //#define CTARGAIMAGE_IMGFILEPRE "img"
 //#define CTARGAIMAGE_IMGFILESUF ".tga"
 #define STAMP_DIR "../dDump"
-#define STAMP_ROUNDCORN_DIR "L1"
+#define STAMP_ROUNDCORN_DIR "Raw"
 #define STAMP_KEY "stampkey.txt"/*key file contains information about each numbered image stamp*/
 #define STAMP_MASTER_KEY "stampskey.txt"/*master key file that tells info like how many files are there
                                     has form numfiles, num no-rot sig, num back, num rot sig*/
 const float stamp_zero_intensity = 0.f;
 const float stamp_max_ang_rad = 3.1f;
+
+const int number_of_stamps_per_shape = 1;/*this number changes depending on whether stamps solid or stamps with holes is used */
 
 using namespace std;
 
@@ -53,18 +55,32 @@ struct s_stampKey {
 
 	float preRot;/*either flag 1 if needs rotation 0 if fixed, or angle img needs to be rotated by before it is processed as stamap*/
 	s_2pt offset;
+
+	int train;/*if 0 then drop from training set don't use as signal or background*/
 };
 struct s_rCornKey {
 	s_stampKey key;
-	float R;/*radius of rounded corner*/
+	float R;/*radius of rounded corner, negative for inverse*/
 	float opening_ang;/*opening ang for rounded corner*/
 };
+namespace n_stampsKey {
+	const int len = 14;
+	void clear(s_stampsKey& key);
+	unsigned char dumpToDatLine(const s_stampsKey& key, s_datLine& dl);
+	int datLineToKey(const s_datLine& dl, s_stampsKey& key);
+}
 namespace n_stampKey {
+	const int len = 6;
 	void clear(s_stampKey& key);
 	void copy(s_stampKey& key, const s_stampKey& orig);
+	unsigned char dumpToDatLine(const s_stampKey& key, s_datLine& dl);
+    int datLineToKey(const s_datLine& dl, s_stampKey& key);
 }
 namespace n_rCornKey {
+	const int len = 2;
 	void clear(s_rCornKey& key);
+	unsigned char dumpToDatLine(const s_rCornKey& key, s_datLine& dl);
+	int datLineToKey(const s_datLine& dl, s_rCornKey& key);
 }
 
 /* generates the stamp images that represent the aftermath of the col plate*/
@@ -79,7 +95,7 @@ public:
 		float openingAngDivisor = 2.f, /*divids PI to get opening angle*/
 		float radCmul = 2.f,/*multiplicative factor that increases the circle radius each cycle*/
 		float numAngDiv = 12.f,
-		float numCircleRadii = 5.f,
+		float numCircleRadii = 7.f,
 		float minCircleRadSF = 2.f,
 		float maxFinalOpeningAng= 1.1f,
 		int   numfinalOpeningAngs = 3,
@@ -115,9 +131,10 @@ protected:
 	float       m_imgDim;
 	/*owned*/
 	Img**       m_stampImgs;
-	s_rCornKey* m_Keys;
+	s_rCornKey* m_Keys;/*this has length m_max_total_number_of_stamps */
 	int         m_stampN;
 	s_2pt&      m_stampImgCenter;
+	s_stampsKey m_masterStampsKey;
 
 	/*working scratch*/
 	s_2pt m_UBasis0;
@@ -132,18 +149,32 @@ protected:
 	s_2pt m_Uline_perp1;/*points perp to line 1 into region beetween lines*/
 	s_2pt m_Uline_perp2;/* "                  2         "                 */
 	s_2pt m_UcenterIn;/*points inward from center of where lines would intersect, should be set to 1,0*/
+	/*calculated during init*/
+	float m_n_DAng;
+	int   m_n_ang;
+	int   m_n_circleRadii;
+	int   m_max_total_num_of_stamps;/*this is the length of the keys array in memory*/
 
 	bool  m_cosFalloff;
 	bool  m_linearFalloff;
 	bool  m_gaussFalloff;
 	bool  m_sharpFalloff;
 
+	/*init/release helpers*/
+	unsigned char calcNumOfStamps();/* uses m_NumAngDiv to calculate m_DAng m_n_ang and m_n_circleRadii, also uses m_NFinalOpeningAngs*/
+	unsigned char initParse();
+	void          releaseParse();
+	unsigned char initStampKeys();/*requires calcNumOfStamps to have been run*/
+	void          releaseStampKeys();
+	/*            */
+
 	unsigned char stampRoundedCornerImgs();
 	unsigned char dumpStampImgs();/*run after stampRoundedCorner, dumps images of stamps, with name CTARGAIMAGE_IMGFILEPRE ID CTARGAIMAGE_IMGFILESUF*/
-	unsigned char dumpSignalKeys();/*run after stamp RoundedCorner Images dumps the keys for each signal stamp
-								     most of the angled stamps will be used as background */
+	unsigned char dumpStampKeys();/*run after stamp RoundedCorner Images dumps the keys for each stamp
+								     keys dumps the data from s_stampKey first */
 
-	bool stampsWHoles(const s_2pt& center, float ang, float circle_scale, float opening_ang);
+	bool stampsSolid(const s_2pt& center, float ang, float circle_scale, float opening_ang);/*stamp solid stamp*/
+	bool stampsWHoles(const s_2pt& center, float ang, float circle_scale, float opening_ang);/*either use this function or stampsSolid*/
 	bool stampFinalAngSpread(const s_2pt& center, float ang, float circle_scale, float opening_ang_start);
 
 	bool stampImg(const s_2pt& center, float ang, float circle_rad, float opening_ang);
@@ -171,3 +202,4 @@ protected:
 	bool stampCoordToImgCoord(Img* img, const s_2pt& pt, s_2pt_i& img_pt);
 };
 #endif
+

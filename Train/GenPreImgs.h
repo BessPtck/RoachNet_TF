@@ -7,7 +7,9 @@
 
 using namespace std;
 
-
+/*run the base that generates the raw images,
+then run a screen test for the level to see if there is too much overlap, setting some of the train values to 0
+then run this function generating the statistics necessary for the training set*/
 class GenPreImgs : public Base {
 public:
 	GenPreImgs();

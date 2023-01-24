@@ -214,7 +214,7 @@ class s_HexPlateLayer {
 public:
 	s_HexPlateLayer();
 	~s_HexPlateLayer();
-	unsigned char init(int Nplates);
+	unsigned char init(int Nplates);/*just initializes the pointers for s_HexPlate and sets N_mem*/
 	void          release();
 	virtual inline s_HexPlate* get(int indx) { return p[indx]; }
 	inline int getNmem() { return N_mem; }

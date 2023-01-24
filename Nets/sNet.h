@@ -83,13 +83,13 @@ public:
 																	numLevelNodes is an array of len nLev giving the number of nodes in each level
 																	numHanging is the number of open node pointers 'hanging' from each 
 																	node in the bottom level */
-	unsigned char init(HexEye* eye, int numPlates);/*initializes net to have same structure as eye
+	unsigned char init(HexEye* eye, int numPlates);  /*initializes net to have same structure as eye
 														   with number of hanging nodes equal to the number of plates*/
 	void release();
 
 	unsigned char spawn(s_Net* sn);
-	unsigned char spawn(s_Net* sn, s_HexEye* eye);/*this eye should have exactly the same structure as the eye used to initialize the sNet
-												  top and bottom have 1 to 1 correspondence to eye nodes
+	unsigned char spawn(s_Net* sn, s_HexEye* eye);  /*this eye should have exactly the same structure as the eye used to initialize the sNet
+												      top and bottom have 1 to 1 correspondence to eye nodes
 													  the hidden (middle) levels have each node connected (by hanging links)
 													  to all the nodes on the next level down
 													  lowest level eye num hexes = lowest num of net nodes

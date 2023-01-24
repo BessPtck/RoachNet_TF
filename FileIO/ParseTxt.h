@@ -6,6 +6,7 @@
 #endif
 
 #define PARSETXT_MAXAR 150
+#define PARSETXT_FILENUMEXTLEN 4
 using namespace std;
 
 struct s_datLine {
@@ -27,6 +28,7 @@ public:
 	unsigned char init();
 	void release();
 	void setInFile(const string& inFile);
+	void setOutFile(const string& outFile);
 
 	int readCSV(s_datLine dat[], int maxSize=5000);
 	unsigned char writeCSVHeader(std::string& headerStr);
@@ -42,4 +44,11 @@ protected:
 
 	int readFloatLine(const string& str, float* ar);
 };
+
+namespace n_ParseTxt {
+	inline unsigned char intToFileNameExt(int val, string& strout) {
+		return intToFixedLenStr(val, PARSETXT_FILENUMEXTLEN, strout);
+	}
+	unsigned char intToFixedLenStr(int val, int target_len, string& strout);
+}
 #endif

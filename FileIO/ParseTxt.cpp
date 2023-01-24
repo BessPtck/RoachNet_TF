@@ -30,6 +30,9 @@ void ParseTxt::release() {
 void ParseTxt::setInFile(const string& inFile) {
 	m_inFile = inFile;
 }
+void ParseTxt::setOutFile(const string& outFile) {
+	m_outFile = outFile;
+}
 int ParseTxt::readCSV(s_datLine dat[], int maxSize) {
 	ifstream ffile(m_inFile);
 	string line;
@@ -103,4 +106,18 @@ int ParseTxt::readFloatLine(const string& str, float* ar) {
 		foundLoc = str.find(commaStr, startLoc);
 	};
 	return arLen;
+}
+
+unsigned char n_ParseTxt::intToFixedLenStr(int val, int target_len, string& strout) {
+	string convIntStr = to_string(val);/*should just convert to string without padding*/
+	int len_conv_str = convIntStr.length();
+	if (len_conv_str > target_len)
+		return ECODE_ABORT;
+	int added_padding_num = target_len - len_conv_str;
+	strout.clear();
+	for (int i_pad = 0; i_pad < added_padding_num; i_pad++) {
+		strout += "0";
+	}
+	strout += convIntStr;
+	return ECODE_OK;
 }

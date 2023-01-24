@@ -20,6 +20,9 @@
 #ifndef CTARGAIMAGE_H
 #include "../FileIO/CTargaImage.h"
 #endif
+#ifndef GENPREIMGS_H
+#include "GenPreImgs.h"
+#endif
 
 #define TRAINBASE_OUTFILETAIL "_TFPre.csv"
 #define TRAINBASE_STRUCTFILE "_NetStruct.txt"
@@ -52,7 +55,7 @@ public:
 
 	unsigned char init(
 		string& L
-	);
+	);/*the image file "L"0_0.tga will be the correct dim for the rest of the images*/
 	void release();
 
 	virtual unsigned char run();
@@ -60,6 +63,7 @@ protected:
 	/*owned*/
 	ParseTxt* m_parse;
 	CTargaImage* m_tga;
+	GenPreImgs* m_genPreImg;
 	/*     */
 	string m_L;
 
@@ -77,27 +81,16 @@ protected:
 	int        m_N_weights;/*number of pre weights to be dumped*/
 
 	/***                                                       ***/
-	/*chain used to run the net for the sample train Xs*/
-	/*data plate objects */
-	Img* m_img;
-	s_HexBasePlate* m_hexedImg;
-	s_HexBasePlateLayer* m_ColPlates;/* the pointer here point to s_ColPlate instead of HexBasePlate */
-	s_HexBasePlateLayer* m_lunPlates;/* currently there will be only one layer of luna plates*/
-	s_HexBasePlateLayer* m_L1Plates;/* output of running 1st layer of mini net */
-	s_HexBasePlateLayer* m_L2Plates;
 
-	/*data net type objects*/
-	s_Luna* m_lunaNets;
-	s_CNnets* m_L1Nets;
-	s_CNnets* m_L2Nets;
+	unsigned char InitImgFixDim(CTargaImage* fileImg);
+	void releaseImg();
 
-	/*gen objects*/
-	HexImg* m_genHexImg;
-	Col* m_genCol;
-	Luna* m_genLuna;
-	NNet* m_genL1NNet;
-	NNet* m_genL2NNet;
-	/*** some of the above may remain NULL only used by inherited ***/
+
+	/****                                                      ***/
+
+	/*******  run helpers *****/
+	unsigned char runToLuna_Img(int img_i);
+	/*******               ****/
 	/***                                                       ***/
 
 	unsigned char readInCodes();
