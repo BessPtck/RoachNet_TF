@@ -24,7 +24,8 @@ public:
 	unsigned char addCol(s_ColWheel* col);/*this col is copied object does not need to continue existance*/
 
 
-	unsigned char spawn(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates);/*this layer will own its plates*/
+	unsigned char spawn(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates);/*this layer will own its plates
+																			    colplates is a new object but one that is NOT init*/
 	void          despawn(s_ColPlateLayer* colPlates);
 
 	unsigned char samLayer(s_ColPlateLayer* colPlates, int plate_i[], int plate_N, s_HexBasePlateLayer* sLayer);/* assembles col plates with indexs as indicated by plate_i[] into the sLayer; 

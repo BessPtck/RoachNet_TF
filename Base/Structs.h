@@ -126,7 +126,7 @@ public:
 	s_HexPlate();
 	~s_HexPlate();
 
-	unsigned char         init(long nNodes);
+	unsigned char         init(long nNodes);/*s_Hex nodes are created by this*/
 	virtual unsigned char init(const s_HexPlate* other);/*down connections will still point to wherever the original pointed, the web is fixed however*/
 	void                  initRs(float inRhex);
 	void                  release();/*assumes that the plate owns its subnodes if not NULL*/
@@ -160,6 +160,9 @@ namespace n_HexPlate {
 																						     line in a web linked hex mesh
 																							 returns the new direction and fills
 																							 the hi/low node ptrs with next pair of hexes*/
+	long countNumHexesInLine(long start_i, int dir_web_i, s_HexPlate* o);/*counts the number of hexes in line moving in the web direction defined by dir_web_i from start_i including start_ in the number*/
+	unsigned char pool2init(s_HexPlate* o, s_HexPlate* pool);/*creates a new hexPlate from the original, o, hexplate with the new plate reduced by a factor of 2
+															     each of the new down links points to the 7 hexes on the o plate that the new plate is above*/
 	//long xyToHexi(const s_2pt& xy);
 }
 
@@ -186,6 +189,10 @@ public:
 protected:
 	void reset();
 };
+namespace n_HexBasePlate {
+	unsigned char initHexBasePlate_from_HexPlate(s_HexBasePlate* p);
+	unsigned char pool2init(s_HexBasePlate* o, s_HexBasePlate* pool);
+}
 
 class s_nPlate : public s_Plate {
 public:

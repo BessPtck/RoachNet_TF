@@ -542,6 +542,139 @@ int n_HexPlate::turnCornerStackedPlates(s_Hex** nd_hi, s_Hex** nd_lo, int fwd_we
 	}
 	return next_web_i;
 }
+long n_HexPlate::countNumHexesInLine(long start_i, int dir_web_i, s_HexPlate* o) {
+	if (start_i < 0 || start_i >= o->N || dir_web_i<0 || dir_web_i>=6)
+		return 0;
+	long cur_i = start_i;
+	long num_hexes = 1;
+	s_Hex* cur_hex = o->get(cur_i);
+	for (long ii = start_i; ii < o->N; ii++) {
+		s_Node* next_over_hex = cur_hex->web[dir_web_i];
+		if (next_over_hex == NULL)
+			break;
+		cur_hex = (s_Hex*)next_over_hex;
+		num_hexes++;
+	}
+	return num_hexes;
+}
+unsigned char n_HexPlate::pool2init(s_HexPlate* o, s_HexPlate* pool) {
+	if (o == NULL || pool == NULL)
+		return ECODE_FAIL;
+	if (o->N < 7)
+		return ECODE_ABORT;
+	pool->height = o->height;
+	pool->width = o->width;
+	pool->Rhex = 2.f * o->Rhex;
+	pool->RShex = 2.f * o->RShex;
+	pool->Shex = 2.f * o->Shex;
+	for (int ii = 0; ii < 6; ii++)
+		utilStruct::copy2pt(pool->hexU[ii], o->hexU[ii]);
+	s_Hex** large_hexes = new s_Hex * [o->N];
+	long num_large_hexes = 0;
+	/*count the number of large hexes and load all the good large hex centers into an array, 
+	this is not particularlly efficient*/
+	/*find start hex one down*/
+	s_Hex* start_hex = o->get(0L);
+	s_Hex* next_down_hex = NULL;
+	const int web_left_i = 3;
+	const int web_right_i = 0;
+	do {
+		next_down_hex = NULL;
+		int next_down_hex_web_i = rotateCCLK(start_hex, web_left_i);
+		if (next_down_hex_web_i >= 0)
+			next_down_hex = (s_Hex*)start_hex->web[next_down_hex_web_i];
+		if (next_down_hex != NULL) {
+			s_Hex* large_hex = next_down_hex;
+			do {
+				/*check if the hex is fully linked around, in which case it will be one of the pool hexes*/
+				bool is_large_candidate = true;
+				for (int ii = 0; ii < 6; ii++)
+					if (large_hex->web[ii] < 0)
+						is_large_candidate = false;
+				if (is_large_candidate) {
+					large_hexes[num_large_hexes] = large_hex;
+					num_large_hexes++;
+					/*find next next over*/
+					s_Hex* one_over_hex = (s_Hex*)large_hex->web[web_right_i];
+					if (one_over_hex != NULL)
+						/*and over again*/
+						large_hex = (s_Hex*)one_over_hex->web[web_right_i];
+				}
+				else {
+					/*try moving one over*/
+					s_Hex* prev_large_hex = large_hex;
+					large_hex = (s_Hex*)prev_large_hex->web[web_right_i];
+				}
+			} while (large_hex != NULL);
+		}
+		/*need to drop two lines*/
+		start_hex = next_down_hex;
+		next_down_hex = NULL;
+		int next_down_hex_web_i = rotateCCLK(start_hex, web_left_i);
+		if (next_down_hex_web_i >= 0)
+			next_down_hex = (s_Hex*)start_hex->web[next_down_hex_web_i];
+
+		start_hex = next_down_hex;
+	} while (start_hex != NULL);
+	
+	/*next setup the nodes*******************************/
+	if (num_large_hexes < 1)
+		return ECODE_ABORT;
+	pool->init(num_large_hexes);/*this will create unfilled s_Hex nodes in the pool plate*/
+	for (long ii = 0; ii < num_large_hexes; ii++) {
+		/*send the values from the center of the large on the lower plate into the large on the higher plate*/
+		s_Hex* small_hex = large_hexes[ii]; 
+		s_Hex* large_hex = pool->get(ii);
+		/*start with s_node values*/
+		large_hex->x = small_hex->x;
+		large_hex->y = small_hex->y;
+		/*this link is the index in the plane which is different for the large and small because the large has fewer nodes*/
+		/*there are 7 s_nodes that will be linked downward to the 7 s_Hex nodes on the original un-pooled plate
+		  the convention followed by the lunas seems to be that 0 is the center node then 1 to 6 are the web nodes 0 to 5*/
+		large_hex->nodes[0] = (s_Node*)small_hex;
+		for (int i_web = 0; i_web < 6; i_web++) {
+			s_Node* web_node = small_hex->web[i_web];
+			large_hex->nodes[1 + i_web] = web_node;
+		}
+		large_hex->i = small_hex->i;
+		large_hex->j = small_hex->j;
+	}
+	delete []large_hexes;
+	/*link the nodes************************************/
+	/* not very efficient */
+	for (long ii = 0; ii < num_large_hexes; ii++) {
+		s_Hex* large_hex = pool->get(ii);
+		/*rotate around the large hex linking the other large hexes to it in the web*/
+		for (int i_web = 0; i_web < 6; i_web++) {
+			/*lower overlapping node*/
+			s_Hex* small_web_comb_node = (s_Hex*)large_hex->nodes[1 + i_web];
+			s_Node* center_lower_link_node = NULL;
+			if (small_web_comb_node != NULL)
+				center_lower_link_node = small_web_comb_node->web[i_web];
+			/*check if there is another node one over from the current large node*/
+			if (center_lower_link_node != NULL) {
+				/*if there is find the index on the lower plate of the node one over
+				  this node needs its upper large node linked to to the large node at this web index*/
+				long center_index = center_lower_link_node->thislink;
+				/*this is not efficient find the large hex */
+				for (int jj = 0; jj < num_large_hexes; jj++) {
+					s_Hex* match_candidate_node = (s_Hex*)pool->get(jj);
+					/*find the lower link node under this large hex*/
+					s_Node* lower_match_candidate_node = match_candidate_node->nodes[0];
+					if (lower_match_candidate_node == NULL)
+						continue;
+					/*find the index of the bottom node that is under the center of the large node that is a candidate for web link*/
+					long match_candidate_index = lower_match_candidate_node->thislink;
+					if (center_index == match_candidate_index) {
+						large_hex->web[i_web] = (s_Node*)match_candidate_node;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return ECODE_OK;
+}
 
 s_HexBasePlate::s_HexBasePlate() :N_wHex(0), N_hHex(0), RowStart(NULL), RowStart_is(NULL), Row_N(0), Col_d(0.f), Row_d(0.f)
 {
@@ -599,6 +732,59 @@ void s_HexBasePlate::releaseRowStart() {
 void s_HexBasePlate::reset() {
 	Col_d = 0.f;
 	Row_d = 0.f;
+}
+unsigned char n_HexBasePlate::initHexBasePlate_from_HexPlate(s_HexBasePlate* p) {
+	if(p == NULL)
+		return ECODE_ABORT;
+	if (p->N < 1)
+		return ECODE_ABORT;
+	p->Col_d = 2.f / 3.f * p->Rhex;
+	p->Row_d = 2.f * p->RShex;
+	s_Node** row_start_buffer = new s_Node * [p->N];
+	long row_count = 0;
+	long row_start_i = 0;
+	p->N_wHex = 0;
+	do{
+		s_Hex* row_start_node = (s_Hex*)p->nodes[row_start_i];
+		s_Hex* web_next = NULL;
+		long cur_row_count = 0;
+		do {
+			web_next = (s_Hex*)row_start_node->web[0];
+			cur_row_count++;
+		} while (web_next != NULL);
+		if (cur_row_count > p->N_wHex)
+			p->N_wHex = cur_row_count;
+		row_start_buffer[row_count] = row_start_node;
+		row_count++;
+		/*try to go down a row*/
+		row_start_i = -1;
+		if (row_start_node->web[4] != NULL)
+			row_start_i = row_start_node->web[4]->thislink;
+		else if (row_start_node->web[5] != NULL)
+			row_start_i = row_start_node->web[5]->thislink;
+	} while (row_start_i>0);
+	p->N_hHex = row_count;
+	p->initRowStart(row_count);/*this inits the mem*/
+	/*now fill the row starts*/
+	for (long ii = 0; ii < p->Row_N; ii++) {
+		s_Hex* row_start_node = (s_Hex*)row_start_buffer[ii];
+		long i_node = row_start_node->i;
+		long j_node = row_start_node->j;
+		float x_node = row_start_node->x;
+		float y_node = row_start_node->y;
+		p->RowStart[ii].x0 = x_node;
+		p->RowStart[ii].x1 = y_node;
+		p->RowStart_is[ii].x0 = i_node;
+		p->RowStart_is[ii].x1 = j_node;
+	}
+	delete[] row_start_buffer;
+	return ECODE_OK;
+}
+unsigned char n_HexBasePlate::pool2init(s_HexBasePlate* o, s_HexBasePlate* pool) {
+	unsigned char errc = n_HexPlate::pool2init((s_HexPlate*)o, (s_HexPlate*)pool);
+	if (errc != ECODE_OK)
+		return errc;
+	return initHexBasePlate_from_HexPlate(pool);
 }
 unsigned char s_nPlate::init(long nNodes, int nLowerNodes) {
 	if ((s_Plate::init(nNodes))!=ECODE_OK) return ECODE_FAIL;
