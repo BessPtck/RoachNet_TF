@@ -51,7 +51,7 @@ protected:
 };
 
 namespace n_Col {
-	bool run(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates, long plate_index);/*plate index is index of hex on each plate not the index of the plate in the layer*/
-	bool runPlate(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates, long layer_index, long plate_index);
+	bool run(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates, long plate_hex_index);/*plate_hex_index is index of hex on each plate not the index of the plate in the layer*/
+	bool runPlate(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates, long layer_index, long plate_hex_index);
 }
 #endif

@@ -104,13 +104,13 @@ void Col::releasePlateLayer(s_ColPlateLayer* colPlates) {
 	}
 }
 
-bool n_Col::run(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates, long plate_index) {
+bool n_Col::run(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates, long plate_hex_index) {
 	bool retVal = true;
 	for (long ii = 0; ii < colPlates->N; ii++)
-		retVal &= runPlate(hexedImg, colPlates, ii, plate_index);
+		retVal &= runPlate(hexedImg, colPlates, ii, plate_hex_index);
 	return retVal;
 }
-bool n_Col::runPlate(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates, long layer_index, long plate_index) {
+bool n_Col::runPlate(s_HexBasePlate* hexedImg, s_ColPlateLayer* colPlates, long layer_index, long plate_hex_index) {
 	s_ColPlate* colPlt = colPlates->get(layer_index);
-	return n_ColPlate::run(hexedImg, colPlt, plate_index);
+	return n_ColPlate::run(hexedImg, colPlt, plate_hex_index);
 }

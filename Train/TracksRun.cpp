@@ -107,7 +107,60 @@ void n_colTrack::delDataPlateObjects(s_colTrack& t) {
 		delete t.lunBasePlates;
 	t.lunBasePlates = NULL;
 }
-
+void n_colTrack::despawnTrack(s_colTrack& t) {
+	if (t.L2Plates != NULL) {
+		int num_L2_plates = t.L2Plates->N;
+		for (int ii = 0; ii < num_L2_plates; ii++) {
+			if (t.L2Plates->p[ii] != NULL) {
+				t.L2Plates->p[ii]->release();
+				delete t.L2Plates->p[ii];
+				t.L2Plates->p[ii] = NULL;
+			}
+		}
+		t.L2Plates->release();
+	}
+	if (t.L1PoolPlates != NULL) {
+		int num_L1_plates = t.L1PoolPlates->N;
+		for (int ii = 0; ii < num_L1_plates; ii++) {
+			if (t.L1PoolPlates->p[ii] != NULL) {
+				t.L1PoolPlates->p[ii]->release();
+				delete t.L1PoolPlates->p[ii];
+				t.L1PoolPlates->p[ii] = NULL;
+			}
+		}
+		t.L1PoolPlates->release();
+	}
+	if (t.L1Plates != NULL) {
+		int num_L1_plates = t.L1Plates->N;
+		for (int ii = 0; ii < num_L1_plates; ii++) {
+			if (t.L1Plates->p[ii] != NULL) {
+				t.L1Plates->p[ii]->release();
+				delete t.L1Plates->p[ii];
+				t.L1Plates->p[ii] = NULL;
+			}
+		}
+		t.L1Plates->release();
+	}
+	if (t.lunPlates != NULL) {
+		int num_lun_plates = t.lunPlates->N;
+		for (int ii = 0; ii < num_lun_plates; ii++) {
+			if (t.lunPlates->p[ii] != NULL) {
+				t.lunPlates->p[ii]->release();
+				delete t.lunPlates->p[ii];
+				t.lunPlates->p[ii] = NULL;
+			}
+		}
+		t.lunPlates->release();
+	}
+	if (t.lunBasePlates != NULL) {
+		int num_lun_plates = t.lunBasePlates->N;
+		/*lun base plates do NOT own their plates*/
+		for (int ii = 0; ii < num_lun_plates; ii++) {
+			t.lunBasePlates->p[ii] = NULL;/*make sure this is not an attempted release*/
+		}
+		t.lunBasePlates->release();
+	}
+}
 s_TracksRun::s_TracksRun():m_img(NULL), m_hexedImg(NULL), m_colPlates(NULL), m_num_col_plates(0), m_num_tracks(0), m_num_luna_col_plates(0),
  m_num_L1_plates_per_lunaPlate(0), m_num_L2_plates_per_L1Plate(0)
 {
@@ -129,7 +182,7 @@ unsigned char s_TracksRun::init(
 	if (num_luna_col_plates > num_col_plates)
 		return ECODE_ABORT;
 	m_img = dim_img;
-	m_hexedImg = new s_HexBasePlate;
+	m_hexedImg = new s_HexBasePlate;/*generator takes an object that is there but not initialized*/
 	m_colPlates = new s_ColPlateLayer;
 	m_num_col_plates = num_col_plates;
 	m_num_luna_col_plates = num_luna_col_plates;
@@ -155,6 +208,23 @@ unsigned char s_TracksRun::AddTrackIndexes(int track_indexes[], int num_indexes)
 		return ECODE_FAIL;
 	m_pre_set_tracks++;
 	return errc;
+}
+unsigned char s_TracksRun::spawn(Col* genCol) {
+	if (m_hexedImg == NULL || m_colPlates == NULL)
+		return ECODE_FAIL;
+	if (m_pre_set_tracks != m_num_tracks)
+		return ECODE_ABORT;
+	/*m_hexedImg is initialized when m_genHexImg was initialized*/
+	if (Err(genCol->spawn(m_hexedImg, m_colPlates)))
+		return ECODE_FAIL;
+	for (int ii = 0; ii < m_num_tracks; ii++) {
+		s_colTrack& t_track = m_ts[ii];
+		if (t_track.num_sam_plates != m_num_luna_col_plates)
+			return ECODE_FAIL;
+		if (Err(n_colTrack::spawnTrack(m_ts[ii], m_colPlates, m_num_L1_plates_per_lunaPlate, m_num_L2_plates_per_L1Plate)))
+			return ECODE_FAIL;
+	}
+	return ECODE_OK;
 }
 void s_TracksRun::release() {
 	delDataNetObjects();
@@ -190,6 +260,14 @@ void s_TracksRun::delDataNetObjects() {
 	if (m_L2Nets != NULL)
 		delete m_L2Nets;
 	m_L2Nets = NULL;
+}
+unsigned char s_TracksRun::update(Img* iimg) {
+	if (iimg != NULL) {
+		m_img = iimg;
+	}
+	else
+		return ECODE_ABORT;
+	return ECODE_OK;
 }
 unsigned char TracksRun::init(Img* dim_img,
 	int num_L1_nets,
@@ -236,6 +314,7 @@ unsigned char TracksRun::init(Img* dim_img,
 	if (m_file_L2NNet.length() > 1)
 		if (Err(m_genL2NNet->setFile(m_file_L2NNet)))
 			return ECODE_FAIL;
+
 	return ECODE_OK;
 }
 
@@ -258,22 +337,23 @@ unsigned char TracksRun::spawn() {
 	/*cols should already have been added*/
 	if (m_genCol->getNCols() != m_dat.m_num_col_plates)
 		return ECODE_ABORT;
-	if (m_dat.m_pre_set_tracks != m_dat.m_num_tracks)
-		return ECODE_ABORT;
-	if(Err(m_genCol->spawn(m_dat.m_hexedImg, m_dat.m_colPlates)))
+	if (Err(m_dat.spawn(m_genCol)))/*this spawns the s_TracksRun object and all its tracks with all the data plates not filled*/
 		return ECODE_FAIL;
+	/*spawn the structures for the little nnets*/
 	if (Err(m_genLuna->spawn(m_dat.m_lunaNets)))/*m_lunaNets is already created but not init*/
 		return ECODE_FAIL;
-	
-
+	if (Err(m_genL1NNet->spawn(m_dat.m_L1Nets)))
+		return ECODE_FAIL;
+	if (Err(m_genL2NNet->spawn(m_dat.m_L2Nets)))
+		return ECODE_FAIL;
+	return ECODE_OK;
 }
-unsigned char TracksRun::SpawnDataObjs(s_ColWheel cols[], int num_colwheels) {
-	for(int i_cols=0; i_cols<num_colwheels; i_cols++)
 
-	if (Err(m_genCol->spawn(m_hexedImg, m_colPlates)))
-		return ECODE_FAIL;
-	int col_plate_is[1];
-	col_plate_is[0] = 0;
-	if (Err(m_genCol->samLayer(m_colPlates, col_plate_is, 1, m_lunBasePlates_t1)))
-		return ECODE_FAIL;
+unsigned char TracksRun::run(Img* iimg) {
+	m_dat.update(iimg);/*this just updates the image pointer in the s_TracksRun object*/
+	m_genHexImg->update(iimg);
+	/*genHexImg has uses the pointer to the m_hexedImg plate in the m_dat object therefor this object will update when genHexImg is updated*/
+	for (long hex_i = 0; hex_i < m_dat.m_hexedImg->N; hex_i++) {
+		
+	}
 }

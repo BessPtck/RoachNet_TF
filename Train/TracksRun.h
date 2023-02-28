@@ -65,12 +65,13 @@ namespace n_colTrack {
 	void despawnTrack(s_colTrack& t);
 	/*******              *****/
 }
-class s_TracksRun {
+class s_TracksRun : public Base{
 public:
 	s_TracksRun();
 	~s_TracksRun();
 	/*not owned*/
 	Img* m_img;
+
 
 	/*owned*/
 	/*data net type objects*/
@@ -101,7 +102,12 @@ public:
 		int num_L2_plates_per_L1plate
 	);
 	unsigned char AddTrackIndexes(int track_indexes[], int num_indexes);
+	unsigned char spawn(Col* genCol);/*spawns all the col plates and all the plates in the tracks, needs to be run after m_hexedImg is initialized
+									   and after all the track indexes have been added properly to the s_colTrack objects*/
+	void          despawn();
 	void release();
+
+	unsigned char update(Img* iimg = NULL);
 
 protected:
 	unsigned char genDataNetObjects();
@@ -130,9 +136,10 @@ public:
 																 luna col plates, num_luna_col_plates
 																   so that the luna does not require different number of color plates*/
 	unsigned char spawn();
+	void          despawn();
 	void release();
 
-
+	unsigned char run(Img* iimg=NULL);
 protected:
 
 
@@ -153,17 +160,7 @@ protected:
 	/*data struct objects generally plates objects*/
 	s_TracksRun m_dat;
 
-
-	/*** some of the above may remain NULL only used by inherited ***/
-
-   /******* init helpers *****/
-	unsigned char SpawnDataObjs(s_ColWheel cols[], int num_colwheels);
-	unsigned char SpawnTrackRun(s_colTrack& trk);/* does the spawn of the net objects for the track*/
-	/******* release helpers ****/
-	void deSpawnDataObjs();
-	void deSpawnTrackRun(s_colTrack& trk);
-	/*******              *****/
-
+   
 	/*******              ******/
 	/*       run               */
 	unsigned char runTrack(int i_track);
