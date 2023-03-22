@@ -30,6 +30,8 @@ using namespace std;
 #define TRACKSRUN_MAXNUMCOLPLATES 3
 #define TRACKSRUN_MAXNUMCOLSAMPLATES 9
 
+const float TRACKSRUN_LOWEST_POSSIBLE_POOL_VAL = -1.0;
+
 /*Class runs all the tracks that are to be run on an image, the image can be replaced with an image of the same dimensions and the tracks run again*/
 
 struct s_colTrack {
@@ -64,6 +66,12 @@ namespace n_colTrack {
 
 	void despawnTrack(s_colTrack& t);
 	/*******              *****/
+	/**** update helpers ******/
+	bool updatePool(s_HexBasePlateLayer* poolPlates, long plate_hex_index);/*pool plate is assumed to be connected to the plate it 
+																		     is averaging from with the s_Nodes(nodes) all pool plates
+																			 must have the same number of indexes*/
+	bool updatePoolPlate(s_HexBasePlate* poolPlate, long plate_hex_index);
+	/*****               ******/
 }
 class s_TracksRun : public Base{
 public:
@@ -139,7 +147,7 @@ public:
 	void          despawn();
 	void release();
 
-	unsigned char run(Img* iimg=NULL);
+	unsigned char update(Img* iimg=NULL);
 protected:
 
 
@@ -163,8 +171,10 @@ protected:
    
 	/*******              ******/
 	/*       run               */
-	unsigned char runTrack(int i_track);
+	unsigned char updateTrack(s_colTrack& trk);
 	/*******              ******/
 };
+
+
 
 #endif

@@ -161,6 +161,26 @@ void n_colTrack::despawnTrack(s_colTrack& t) {
 		t.lunBasePlates->release();
 	}
 }
+bool n_colTrack::updatePool(s_HexBasePlateLayer* poolPlates, long plate_hex_index) {
+	bool err_code = true;
+	for (int plate_i = 0; plate_i < poolPlates->N; plate_i++) {
+		err_code &= updatePoolPlate(poolPlates->get(plate_i), plate_hex_index);
+	}
+	return err_code;
+}
+bool n_colTrack::updatePoolPlate(s_HexBasePlate* poolPlate, long plate_hex_index) {
+	s_Hex* cur_hex = poolPlate->get(plate_hex_index);
+	float highest_pool_val = TRACKSRUN_LOWEST_POSSIBLE_POOL_VAL;
+	for (int low_nd_i = 0; low_nd_i < cur_hex->N; low_nd_i++) {
+		s_Node* low_nd = cur_hex->nodes[low_nd_i];
+		if (low_nd != NULL) {
+			if (low_nd->o > highest_pool_val)
+				highest_pool_val = low_nd->o;
+		}
+	}
+	cur_hex->o = highest_pool_val;
+	return true;
+}
 s_TracksRun::s_TracksRun():m_img(NULL), m_hexedImg(NULL), m_colPlates(NULL), m_num_col_plates(0), m_num_tracks(0), m_num_luna_col_plates(0),
  m_num_L1_plates_per_lunaPlate(0), m_num_L2_plates_per_L1Plate(0)
 {
@@ -349,11 +369,61 @@ unsigned char TracksRun::spawn() {
 	return ECODE_OK;
 }
 
-unsigned char TracksRun::run(Img* iimg) {
+unsigned char TracksRun::update(Img* iimg) {
 	m_dat.update(iimg);/*this just updates the image pointer in the s_TracksRun object*/
 	m_genHexImg->update(iimg);
 	/*genHexImg has uses the pointer to the m_hexedImg plate in the m_dat object therefor this object will update when genHexImg is updated*/
 	for (long hex_i = 0; hex_i < m_dat.m_hexedImg->N; hex_i++) {
-		
+		bool okret=n_Col::run(m_dat.m_hexedImg, m_dat.m_colPlates, hex_i);
+		if (!okret)
+			return ECODE_FAIL;
 	}
+	unsigned char errc = ECODE_OK;
+	for (int trk_i = 0; trk_i < m_dat.m_num_tracks; trk_i++) {
+		errc |= updateTrack(m_dat.m_ts[trk_i]);
+		if (Err(errc)) {
+			if (IsErrFail(errc))
+				return ECODE_FAIL;
+		}
+	}
+	return errc;/*abort would mean that the track did not finish filling the last plates, the L1 and or L2 plates*/
 }
+unsigned char TracksRun::updateTrack(s_colTrack& trk) {
+	/*data from m_colPlates will automatically transfer to lunaBasePlates because these are not owned by their object but
+	  pointers to the m_colPlates */
+	if (trk.lunBasePlates->N < 1 || trk.lunPlates->N < 1)
+		return ECODE_FAIL;
+	long num_hex_indexes = (trk.lunBasePlates->get(0)->N);
+	for (long hex_i = 0; hex_i < num_hex_indexes; hex_i++) {
+		bool okret = n_Luna::run(m_dat.m_lunaNets, *trk.lunBasePlates, *trk.lunPlates, hex_i);
+		if (!okret)
+			return ECODE_FAIL;
+	}
+	if (trk.L1Plates->N < 1)
+		return ECODE_ABORT;
+	num_hex_indexes = (trk.lunPlates->get(0))->N;
+	for (long hex_i = 0; hex_i < num_hex_indexes; hex_i++) {
+		bool okret = n_NNet::run(m_dat.m_L1Nets, trk.lunPlates, trk.L1Plates, hex_i);
+		if (!okret)
+			return ECODE_FAIL;
+	}
+	if (trk.L1PoolPlates->N < 1)
+		return ECODE_ABORT;
+	/*pool plates are already linked to lunPlates so just need to update drawing from the links*/
+	num_hex_indexes = (trk.L1PoolPlates->get(0))->N;
+	for (long hex_i = 0; hex_i < num_hex_indexes; hex_i++) {
+		bool okret = n_colTrack::updatePool(trk.L1PoolPlates,hex_i);
+		if (!okret)
+			return ECODE_FAIL;
+	}
+	if (trk.L2Plates->N < 1)
+		return ECODE_ABORT;
+	/*num_hex_indexes is still the same sin L1PoolPlates are the inputs to the L2Plates and have the same hex grid*/
+	for (long hex_i = 0; hex_i < num_hex_indexes; hex_i++) {
+		bool okret = n_NNet::run(m_dat.m_L2Nets, trk.L1PoolPlates, trk.L2Plates, hex_i);
+		if (!okret)
+			return ECODE_FAIL;
+	}
+	return ECODE_OK;
+}
+
