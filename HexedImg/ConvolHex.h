@@ -8,14 +8,17 @@
 #include "../Base/Img.h"
 #endif
 
+#define CONVOLHEX_sigmaVsR 0.75f
+#define CONVOLHEX_IMaskRVsR 1.5f
 
 #define THREADEDCONVOL_NUMTHREADS 4
 class ConvolHex {
 public:
 	ConvolHex();
 	~ConvolHex();
-	unsigned char init(Img* img, s_Node* hex[], float Rhex, float sigmaVsR, float IMaskRVsR);
+	unsigned char init(Img* iimg, s_Node* hex[], float Rhex, float sigmaVsR=CONVOLHEX_sigmaVsR, float IMaskRVsR=CONVOLHEX_IMaskRVsR);
 	void release();
+	inline void update(Img* iimg) { m_img = iimg; }
 	unsigned char convulToHex(int col_i);
 
 	inline s_2pt_i& getIMaskBL_offset() { return m_IMaskBL_offset; }

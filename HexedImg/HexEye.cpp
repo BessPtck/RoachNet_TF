@@ -8,6 +8,8 @@ s_HexEye::s_HexEye() {
 unsigned char s_HexEye::init(int NumLev) {
 	if (lev != NULL)
 		return ECODE_ABORT;
+	if (NumLev < 1)
+		return ECODE_FAIL;
 	lev = new s_HexPlate * [NumLev];
 	if (lev == NULL)
 		return ECODE_FAIL;
@@ -181,8 +183,6 @@ unsigned char HexEye::initEye(s_HexEye* neye) {
 		return ECODE_FAIL;
 	if (Err(neye->init(m_N_levels)))
 		return ECODE_FAIL;
-	neye->width = m_imgWidth;
-	neye->height = m_imgHeight;
 	float R_lev = m_R;
 	for (int i = 0; i < m_N_levels; i++) {
 		long N_hex_thisLevel = m_N_hexes[i];
@@ -200,6 +200,8 @@ unsigned char HexEye::initEye(s_HexEye* neye) {
 		(neye->N)++;
 		R_lev /= 2.f;
 	}
+	neye->height = neye->lev[neye->N - 1]->height;
+	neye->width = neye->lev[neye->N - 1]->width;
 	return ECODE_OK;
 }
 void HexEye::releaseEye(s_HexEye* neye) {

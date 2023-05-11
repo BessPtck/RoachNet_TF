@@ -1,7 +1,7 @@
 #include "GenPreImgs.h"
 
-GenPreImgs::GenPreImgs() : m_parse(NULL), m_tga(NULL), m_preRot(false), 
-m_stampKey(NULL), m_len_stampKey(0),m_stampBakFromSigRotKey(NULL), m_len_stampBakFromSigRotKey(0), m_smudgeStampKey(NULL), m_len_smudgeStampKey(0), m_keyIndx(0),
+GenPreImgs::GenPreImgs() : m_parse(NULL), m_tga(NULL), 
+m_stampKey(NULL), m_len_stampKey(0), m_smudgeStampKey(NULL), m_len_smudgeStampKey(0), m_keyIndx(0),
 m_N_total_sig(0), m_N_total_bak(0), m_N_smudge_bak(0),m_N_smudge_sig(0),m_N_extra_smudge_sig(0)
 {
 	n_stampsKey::clear(m_masterKey);
@@ -11,16 +11,20 @@ m_N_total_sig(0), m_N_total_bak(0), m_N_smudge_bak(0),m_N_smudge_sig(0),m_N_extr
 GenPreImgs::~GenPreImgs() {
 	;
 }
-unsigned char GenPreImgs::init(string& stamp_dir, bool doPreRot_this_pass) {
-	m_Dir = STAMP_DIR;
+unsigned char GenPreImgs::init(string& stamp_dir, string& stampsKey_dir) {
+	m_Dir = STAMP_DUMPBASE_DIR;
 	m_Dir += "/";
 	m_Dir += stamp_dir;
 	m_Dir += "/";
-	m_preRot = doPreRot_this_pass;
+	m_stampKey_Dir = STAMP_DUMPBASE_DIR;
+	m_stampKey_Dir += "/";
+	m_stampKey_Dir += stamp_dir;
+	m_stampKey_Dir += "/";
+	m_stampKey_Dir += stampsKey_dir;
+	m_stampKey_Dir += "/";
+	if (!readMasterKey())
+		return ECODE_ABORT;
 	unsigned char err = getStampKeys();
-	if (Err(err))
-		return err;
-	err = genBakFromSigRot();
 	if (Err(err))
 		return err;
 	err = statCalcSmudgeKeys();
@@ -30,7 +34,6 @@ unsigned char GenPreImgs::init(string& stamp_dir, bool doPreRot_this_pass) {
 }
 void GenPreImgs::release() {
 	clearSmudgeKeys();
-	clearBakFromSigRot();
 	clearStampKeys();
 }
 
@@ -50,17 +53,16 @@ void GenPreImgs::despawn(Img* stamp) {
 	releaseImgFromTGA(stamp);
 }
 unsigned char GenPreImgs::getStampKeys() {
-	if (!readMasterKey())
-		return ECODE_ABORT;
+
 	/*read in the data*/
-	string file_dir = m_Dir + STAMP_KEY;
+	string file_dir = m_stampKey_Dir+STAMP_KEY;
 	m_parse->setInFile(file_dir);
 	s_datLine* dlines = new s_datLine[m_masterKey.N];
 	int num_lines = m_parse->readCSV(dlines, m_masterKey.N);
 	if (num_lines < 1)
 		return ECODE_ABORT;
 	/*now put the lines in the stampkeys*/
-	int num_sig = m_preRot ? m_masterKey.N_pre_sig : m_masterKey.N_sig;
+	int num_sig = m_masterKey.N_sig;
 	m_len_stampKey = num_sig + m_masterKey.N_bak;
 	m_stampKey = new s_stampKey[m_len_stampKey];
 	int key_i = 0;
@@ -87,38 +89,20 @@ void GenPreImgs::clearStampKeys() {
 	m_stampKey = NULL;
 	m_len_stampKey = 0;
 }
-unsigned char GenPreImgs::genBakFromSigRot() {
-	m_keyIndx = 0;/*this will be used for m_stampBakFromSigRotKey*/
-    /*figure out how many background from rotated signal there will be total*/
-	int num_sig = m_preRot ? m_masterKey.N_pre_sig : m_masterKey.N_sig;
-	int total_num_sig_bak_rot = m_masterKey.N_sig_bak_rot * num_sig;
-	m_stampBakFromSigRotKey = new s_stampKey[total_num_sig_bak_rot];
-	m_len_stampBakFromSigRotKey = total_num_sig_bak_rot;
-	/*                                                                      */
-	for (int i_stamps = 0; i_stamps < m_len_stampKey; i_stamps++) {
-		if (m_stampKey[i_stamps].y > 0.f) {
-			if (!genRotBakFromSigStamp(m_stampKey[i_stamps]))
-				return ECODE_FAIL;
-		}
-	}
-	m_len_stampBakFromSigRotKey = m_keyIndx;/*this should already be identical*/
-	return ECODE_OK;
-}
-void GenPreImgs::clearBakFromSigRot() {
-	if (m_stampBakFromSigRotKey != NULL) {
-		delete[] m_stampBakFromSigRotKey;
-	}
-	m_stampBakFromSigRotKey = NULL;
-	m_len_stampBakFromSigRotKey = 0;
-}
+
+
 unsigned char GenPreImgs::statCalcSmudgeKeys() {
-	setupGaussIntegrals();
-	int num_bak_pre_smudge = m_masterKey.N_bak + m_len_stampBakFromSigRotKey;
-	m_N_total_bak = num_bak_pre_smudge * m_masterKey.N_bak_smudge;
-	if (m_N_total_bak < 1)
+	if (m_masterKey.N_bak < 1 || m_masterKey.N_sig < 1)
 		return ECODE_ABORT;
-	m_N_smudge_bak = m_masterKey.N_bak_smudge;
-	int num_sig_pre_smudge = m_preRot ? m_masterKey.N_pre_sig : m_masterKey.N_sig;
+	setupGaussIntegrals();/*this depends on masterKey*/
+	int num_bak_pre_smudge = m_masterKey.N_bak;
+	if (m_masterKey.N_bak_smudge >= 1)
+		m_N_total_bak = num_bak_pre_smudge * m_masterKey.N_bak_smudge;
+	else
+		m_N_total_bak = num_bak_pre_smudge;
+	m_N_smudge_bak = m_masterKey.N_bak_smudge>=1 ? m_masterKey.N_bak_smudge : 1;
+
+	int num_sig_pre_smudge =  m_masterKey.N_sig;
 	if (m_masterKey.N_sig_smudge > 1) {
 		num_sig_pre_smudge *= m_masterKey.N_sig_smudge;
 		m_N_total_sig = num_sig_pre_smudge;
@@ -138,12 +122,12 @@ unsigned char GenPreImgs::statCalcSmudgeKeys() {
 	m_keyIndx = 0;
 	/*smudge the signal*/
 	s_stampKey* firstSigKey = NULL;
-	for (int i_stamp = 0; i_stamp < m_len_stampKey; i_stamp++) {
+	for (int i_stamp = 0; i_stamp < m_len_stampKey; i_stamp++) {/*stampKey could have longer length than N_sig+N_bak if not all sig/bak is trainable*/
 		s_stampKey& key = m_stampKey[i_stamp];
 		if (key.y > 0.f) {
 			if (firstSigKey == NULL)
 				firstSigKey = &(m_stampKey[i_stamp]);
-			genSmudgedKeysFromKey(key, m_N_smudge_sig);
+			genSmudgedKeysFromKey(key, m_N_smudge_sig);/*generate number of smudges in a random gaus pattern with offset random but same rotation*/
 		}
 	}
 	if (firstSigKey == NULL)
@@ -151,17 +135,13 @@ unsigned char GenPreImgs::statCalcSmudgeKeys() {
 	genSmudgedKeysFromKey(*firstSigKey, m_N_extra_smudge_sig);
 	/* now smudge the background */
 	/*once for the reg back*/
-	for (int i_stamp = 0; i_stamp < m_len_stampKey; i_stamp++) {
+	for (int i_stamp = 0; i_stamp < m_len_stampKey; i_stamp++) {/*stampkey could be longer than total trainable set*/
 		s_stampKey& key = m_stampKey[i_stamp];
 		if (key.y < 0.f)
 			genSmudgedKeysFromKey(key, m_N_smudge_bak);
 	}
-	/*once for the sig rot bak*/
-	for (int i_stamp = 0; i_stamp < m_len_stampKey; i_stamp++) {
-		s_stampKey& key = m_stampBakFromSigRotKey[i_stamp];
-		genSmudgedKeysFromKey(key, m_N_smudge_bak);
-	}
 	m_len_smudgeStampKey = m_keyIndx;
+	m_keyIndx = 0;/*reset key index since it will be used to track which stamps have been spawned*/
 	return ECODE_OK;
 }
 void GenPreImgs::clearSmudgeKeys() {
@@ -172,7 +152,7 @@ void GenPreImgs::clearSmudgeKeys() {
 	releaseGaussIntegrals();
 }
 bool GenPreImgs::readMasterKey() {
-	string file_dir = m_Dir + STAMP_MASTER_KEY;
+	string file_dir = m_stampKey_Dir + STAMP_MASTER_KEY;
 	m_parse->setInFile(file_dir);
 	s_datLine* dlines = new s_datLine[1];
 	n_datLine::clear(dlines[0]);
@@ -193,46 +173,18 @@ bool GenPreImgs::getKeyFromLine(const s_datLine& dline, s_stampKey& key) {
 	return (dline.n >= n_stampKey::len);
 }
 bool GenPreImgs::addKey(const s_stampKey& key) {
-	if (key.preRot < 0.5f)
+	if (key.train > 0.5f)
 		return true;
-	if (m_preRot)
-		return false;
-	return true;
+	return false;
 }
-bool GenPreImgs::genRotBakFromSigStamp(s_stampKey& key) {
-	int N_rot_div = m_masterKey.N_sig_bak_rot;
-	N_rot_div -= 1;
-	if (N_rot_div < 1)
-		return false;
-	float N_sig_bak_rot = (float)m_masterKey.N_sig_bak_rot;
-	float ang_range = 2.f * PI - 2.f * m_masterKey.min_sig_bak_rotang;
-	if (ang_range <= 0.f)
-		return false;
-	ang_range = Math::Ang2PI(ang_range);
-	float dang = ang_range / ((float)N_rot_div);
-	float ang = m_masterKey.min_sig_bak_rotang + key.preRot;
 
-	for (int i_div = 0; i_div < m_masterKey.N_sig_bak_rot; i_div++) {
-		float smudged_ang = smudgedRotBakFromSigAng(ang);
-		ang = Math::Ang2PI(smudged_ang);
-		n_stampKey::copy(m_stampBakFromSigRotKey[m_keyIndx], key);
-		m_stampBakFromSigRotKey[m_keyIndx].preRot = ang;
-		m_stampBakFromSigRotKey[m_keyIndx].y = m_masterKey.y_sig_bak_rot;
-		m_keyIndx++;
-		ang += dang;
-	}
-	return true;
-}
-float GenPreImgs::smudgedRotBakFromSigAng(float ang) {
-	return Math::randGausJitterAng(m_ang_jitter_I, ang);
-}
 bool GenPreImgs::setupGaussIntegrals() {
 	if (m_masterKey.smudge_sigma_divisor <= 0.f)
 		return false;
 	float biggestAllowed_offset = m_masterKey.maxDim - m_masterKey.Dim;
 	if (biggestAllowed_offset <= 0.f)
 		return false;
-	n_gaussianInt::init(m_offset_I, m_masterKey.r/m_masterKey.smudge_sigma_divisor,biggestAllowed_offset);
+	n_gaussianInt::init(m_offset_I, (m_masterKey.r*m_masterKey.smudge_factor)/m_masterKey.smudge_sigma_divisor,biggestAllowed_offset);
 
 	n_gaussianInt::init(m_ang_jitter_I, m_masterKey.sig_bak_rotang_jitter / m_masterKey.smudge_sigma_divisor, PI);
 	return true;
@@ -247,12 +199,18 @@ bool GenPreImgs::genSmudgedKeysFromKey(const s_stampKey& key, int N_smudge) {
 	/*generate the first identical key*/
 	n_stampKey::copy(m_smudgeStampKey[m_keyIndx], key);
 	m_keyIndx++;
+	if (m_keyIndx >= m_len_smudgeStampKey)
+		return false;
 	int Num = N_smudge - 1;
 	for (int i = 0; i < Num; i++) {
 		n_stampKey::copy(m_smudgeStampKey[m_keyIndx], key);
 		s_2pt gaus_offset = Math::randGaus2D(key.offset, m_offset_I);
 		utilStruct::copy2pt(m_smudgeStampKey[m_keyIndx].offset, gaus_offset);
+		float ang_rand_jitter = Math::randGausJitterAng(m_ang_jitter_I, key.preRot);
+		m_smudgeStampKey[m_keyIndx].preRot = ang_rand_jitter;
 		m_keyIndx++;
+		if (m_keyIndx >= m_len_stampKey)
+			return false;
 	}
 	return true;
 }

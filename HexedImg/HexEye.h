@@ -53,7 +53,7 @@ public:
 	unsigned char init(float r, int NLevels);/*1 level = 1 hex, 2 levels a 1 hex and a 7 hex level, etc...*/
 	void          release();
 
-	unsigned char spawn(s_HexEye* neye);/*spawn and put the results in neye*/
+	unsigned char spawn(s_HexEye* neye);/*spawn and put the results in neye eye should be new object but not initalized*/
 	void          despawn(s_HexEye* neye);/*cleans up eye*/
 
 	inline int getNLevels() { return m_N_levels; }

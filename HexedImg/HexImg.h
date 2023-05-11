@@ -16,8 +16,8 @@ public:
 		Img* img,
 		s_HexBasePlate* plate, /*points to a plate object that exists but has NOT been intialized */
 		float Rhex = 9.f,//7.f,//3.f,//5.f, //3.f,  7 for debug of eye
-		float sigmaVsR = 0.75f,
-		float IMaskRVsR = 1.5f
+		float sigmaVsR = CONVOLHEX_sigmaVsR,
+		float IMaskRVsR = CONVOLHEX_IMaskRVsR
 	);
 
 	virtual unsigned char update(Img* img);/*image must have same dimensions as original*/

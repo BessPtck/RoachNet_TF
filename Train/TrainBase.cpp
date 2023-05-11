@@ -1,6 +1,6 @@
 #include "TrainBase.h"
 
-unsigned char TrainBase::init(strung& L) {
+unsigned char TrainBase::init(string& L) {
 	m_L = L;
 	string first_img_file(m_L);
 	string num = n_ParseTxt::intToFileNameExt(0);

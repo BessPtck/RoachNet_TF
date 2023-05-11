@@ -157,6 +157,11 @@ void n_rCornKey::clear(s_rCornKey& key) {
 	key.R = 0.f;
 	key.opening_ang = 0.f;
 }
+void n_rCornKey::copy(s_rCornKey& key, const s_rCornKey& orig) {
+	n_stampKey::copy(key.key, orig.key);
+	key.R = orig.R;
+	key.opening_ang = orig.opening_ang;
+}
 unsigned char n_rCornKey::dumpToDatLine(const s_rCornKey& key, s_datLine& dl) {
 	if (n_rCornKey::len+n_stampKey::len > PARSETXT_MAXAR)
 		return ECODE_FAIL;
@@ -183,7 +188,7 @@ int n_rCornKey::datLineToKey(const s_datLine& dl, s_rCornKey& key) {
 unsigned char Stamp::calcNumOfStamps() {
 	if (m_numAngDiv <= 0.f)
 		return ECODE_FAIL;
-	float m_DAng = 2.f * PI / m_numAngDiv;
+	m_DAng = 2.f * PI / m_numAngDiv;
 	int m_n_ang = (int)floorf(m_numAngDiv);
 	int m_n_circleRadii = (int)floorf(m_numCircleRadii);
 	m_max_total_num_of_stamps = m_n_ang * m_n_circleRadii;
@@ -258,7 +263,7 @@ unsigned char Stamp::dumpStampKeys() {
 	if (Err(m_parse->writeCSV(dlines, m_stampN)))
 		return ECODE_FAIL;
 	/*now write the master stamp(s)Key file*/
-	string parseOutFileDir(STAMP_DIR);
+	string parseOutFileDir(STAMP_DUMPBASE_DIR);
 	parseOutFileDir += "/";
 	parseOutFileDir += STAMP_ROUNDCORN_DIR;
 	parseOutFileDir += "/";

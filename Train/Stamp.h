@@ -17,7 +17,7 @@
 
 //#define CTARGAIMAGE_IMGFILEPRE "img"
 //#define CTARGAIMAGE_IMGFILESUF ".tga"
-#define STAMP_DIR "../dDump"
+#define STAMP_DUMPBASE_DIR "../dDump/L1"
 #define STAMP_ROUNDCORN_DIR "Raw"
 #define STAMP_KEY "stampkey.txt"/*key file contains information about each numbered image stamp*/
 #define STAMP_MASTER_KEY "stampskey.txt"/*master key file that tells info like how many files are there
@@ -37,14 +37,15 @@ struct s_stampsKey {
 	int N;
 	int N_sig;
 	int N_bak;
-	int N_pre_sig;
-	int N_sig_bak_rot;/*number of times each signal should be rotated off to become background*/
-	float min_sig_bak_rotang;/*min angle in rad that signal must rotate away to be considere background*/
-	float sig_bak_rotang_jitter;/*span in rad the rotated backround signal can miss the exact an rot target*/
-	int N_bak_smudge;
+	int N_pre_sig;/*not used*/
+	int N_sig_bak_rot;/*not used number of times each signal should be rotated off to become background*/
+	float min_sig_bak_rotang;/*not used min angle in rad that signal must rotate away to be considere background*/
+	float sig_bak_rotang_jitter;/*determines span in rad that the stamp is smudged*/
+	float smudge_factor;/*factor that multiplies r determining how far the stamp can be smudged*/
+	int N_bak_smudge;/*number of times the bak is smudged off its center*/
 	int N_sig_smudge;/*if zero then signal is equalized to the background*/
 
-	float y_sig_bak_rot;
+	float y_sig_bak_rot;/*not used*/
 
 	float smudge_sigma_divisor;/*number like 2 that divides r for the sigma of the gaussian that determines the offset*/
 };
@@ -56,7 +57,7 @@ struct s_stampKey {
 	float preRot;/*either flag 1 if needs rotation 0 if fixed, or angle img needs to be rotated by before it is processed as stamap*/
 	s_2pt offset;
 
-	int train;/*if 0 then drop from training set don't use as signal or background*/
+	int train;/*if 0 then drop from training set act like image not there*/
 };
 struct s_rCornKey {
 	s_stampKey key;
@@ -66,6 +67,7 @@ struct s_rCornKey {
 namespace n_stampsKey {
 	const int len = 14;
 	void clear(s_stampsKey& key);
+	void copy(s_stampsKey& key, const s_stampsKey& orig);
 	unsigned char dumpToDatLine(const s_stampsKey& key, s_datLine& dl);
 	int datLineToKey(const s_datLine& dl, s_stampsKey& key);
 }
@@ -79,6 +81,7 @@ namespace n_stampKey {
 namespace n_rCornKey {
 	const int len = 2;
 	void clear(s_rCornKey& key);
+	void copy(s_rCornKey& key, const s_rCornKey& orig);
 	unsigned char dumpToDatLine(const s_rCornKey& key, s_datLine& dl);
 	int datLineToKey(const s_datLine& dl, s_rCornKey& key);
 }
@@ -105,7 +108,8 @@ public:
 		);
 	void          release();
 
-	unsigned char run();
+	unsigned char run();/*puts gen .tga stamp images in Raw dir the STAMP_KEY file has all of the stamps set to signal for starters */
+	inline int getNumberOfStamps() { return m_stampN; }
 protected:
 	/*owned helper classes*/
 	CTargaImage* m_tgaIO;
@@ -151,6 +155,7 @@ protected:
 	s_2pt m_UcenterIn;/*points inward from center of where lines would intersect, should be set to 1,0*/
 	/*calculated during init*/
 	float m_n_DAng;
+	float m_DAng;
 	int   m_n_ang;
 	int   m_n_circleRadii;
 	int   m_max_total_num_of_stamps;/*this is the length of the keys array in memory*/
