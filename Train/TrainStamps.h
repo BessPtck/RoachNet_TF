@@ -89,18 +89,24 @@ protected:
 	/*helpers to genNNetKeyFiles*/
 	int getCornKeyIndex(int Key_ID);
 	bool goodBak(const s_rCornKey& bak_cand_key, const s_rCornKey signal_key);
-	bool isSignal(const s_rCornKey& bak_cand_key, const s_rCornKey signal_key);
+	bool isSignal(const s_rCornKey& cand_key, const s_rCornKey signal_key);
 
 	/*helpers to dump for debug */
 	unsigned char dumpKeys(std::string& PathToFile, s_stampKey dkeys[], s_stampsKey& master_key, int numKeys);
-	unsigned char dumpImgs(std::string& fullPath, Img* dImgs[], int numImgs);
+	unsigned char dumpImgs(std::string& PathToFile, Img* dImgs[], int numImgs);
 
 	/*********************************************************************/
 	/*next part is running processing code on each of the stamp images
 	  when this is finished the value 1 to 0 for intensity of each hex
 	  representing a luna value and for all luna plates is dumped
 	  these values go into the nnet trained by tensorflow */
-	unsigned char runEyes(int stamp_NNet_num);/*uses m_preImgs*/
+	s_hexEye* m_nnet_hexEyes;/*array that is created and deleted for each 
+							   selected stamp/net feed into trained nnet
+							   that contains the hexeyes runn on the sig and 
+							   bac images after full smudge preperation 
+							   extra back gen ect*/
+	unsigned char genEyes(int stamp_NNet_num);/*uses m_preImgs*/
+	void          releaseEyes();
 	/********************************************************************/
 	/*nnet values presumed comming from tensor flow are put back into
 	  the trained nnets */

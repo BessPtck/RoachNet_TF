@@ -43,7 +43,6 @@ unsigned char TrainStamps::init(float scale_r, float gaus_smudge_sigma_divisor, 
 	m_tga = new CTargaImage;
 	if (Err(m_tga->Init()))
 		return ECODE_FAIL;
-	m_tga->Release();
 	/* end of  debug*/
 	return ECODE_OK;
 }
@@ -209,4 +208,26 @@ unsigned char TrainStamps::dumpKeys(std::string& PathToFile, s_stampKey dkeys[],
 	m_parse->release();
 
 	return ECODE_OK;
+}
+unsigned char TrainStamps::dumpImgs(std::string& PathToFile, Img* dImgs[], int numImgs) {
+	for (int i = 0; i < numImgs; i++){
+		std::string file_name(PathToFile);
+		file_name += CTARGAIMAGE_IMGFILEPRE;
+		std::string net_num(to_string(i));
+		file_name += net_num;
+		file_name += CTARGAIMAGE_IMGFILESUF;
+		m_tga->Open(dImgs[i]->getImg(), dImgs[i]->getWidth(), dImgs[i]->getHeight, false, IMAGE_RGB);
+		unsigned char err=m_tga->Write(file_name.c_str(), dImgs[i]->GetColorMode());
+		m_tga->Close();
+		if (Err(err)) {
+			return err;
+		}
+	}
+	return ECODE_OK;
+}
+
+unsigned char TrainStamps::genEyes(int stamp_NNet_num) {
+	/*assumes the variables that re-write each selected nnet target have been filled*/
+	m_nnet_hexEyes = new s_HexEye[m_numPreStamps];
+
 }
