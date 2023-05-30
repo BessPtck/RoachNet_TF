@@ -58,6 +58,10 @@ public:
 
 	inline int getNLevels() { return m_N_levels; }
 	inline long getNHexes(int i) { return m_N_hexes[i]; }
+
+	s_HexEye& getHexEye() { return m_refEye; }
+
+	inline float getBottomR() { return m_r; }
 protected:
 	/* dimensions of eyes this HexEye will initiate */
 	float m_r;
@@ -66,8 +70,9 @@ protected:
 	s_2pt m_hexU[6];
 	long*  m_N_hexes;
 
-	long m_imgWidth;
-	long m_imgHeight;
+	long m_baseWidth;
+	long m_baseHeight;
+	s_HexEye m_refEye;/*hex eye that is spawned at the end of init used as a reference for coordinates*/
 	/*                                            */
 	unsigned char genNumHexesPerLevel();
 	/*                                            */

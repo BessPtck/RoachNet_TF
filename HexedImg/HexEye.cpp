@@ -130,7 +130,7 @@ bool n_HexEye::check_imgRootL2(s_HexEye* eye, s_HexBasePlate* pImg) {
 		return false;
 }
 
-HexEye::HexEye() :m_r(0.f), m_R(0.f), m_N_levels(-1), m_N_hexes(NULL), m_imgWidth(0L), m_imgHeight(0L) {
+HexEye::HexEye() :m_r(0.f), m_R(0.f), m_N_levels(-1), m_N_hexes(NULL), m_baseWidth(0L), m_baseHeight(0L) {
 	for(int i=0; i<6; i++)
 		utilStruct::zero2pt(m_hexU[i]);
 }
@@ -145,11 +145,16 @@ unsigned char HexEye::init(float r, int NLevels) {
 	m_N_levels = NLevels;
 	n_HexPlate::genHexU_0(m_hexU);
 	m_N_hexes = new long[m_N_levels];
-	m_imgWidth = 0L;
-	m_imgHeight = 0L;
+	if (Err(spawn(&m_refEye)))
+		return ECODE_FAIL;
+	m_baseWidth = m_refEye.getBottom()->width;
+	m_baseHeight = m_refEye.getBottom()->height;
 	return ECODE_OK;
 }
 void HexEye::release() {
+	m_baseHeight = 0L;
+	m_baseWidth = 0L;
+	despawn(&m_refEye);
 	if (m_N_hexes != NULL)
 		delete[] m_N_hexes;
 	m_N_hexes = NULL;

@@ -22,6 +22,16 @@ unsigned char ConvolHex::init(Img* img, s_Node* hex[], float Rhex, float sigmaVs
 	genIMask();
 	return ECODE_OK;
 }
+unsigned char ConvolHex::init(Img* img, float Rhex, float sigmaVsR, float IMaskRVsR)
+{
+	m_img = img;
+	m_Rhex = Rhex;
+	m_sigmaVsR = sigmaVsR;
+	m_IMaskRVsR = IMaskRVsR;
+
+	genIMask();
+	return ECODE_OK;
+}
 void ConvolHex::release()
 {
 	if (m_IMask != NULL) {

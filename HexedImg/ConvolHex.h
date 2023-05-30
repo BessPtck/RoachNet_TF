@@ -16,7 +16,8 @@ class ConvolHex {
 public:
 	ConvolHex();
 	~ConvolHex();
-	unsigned char init(Img* iimg, s_Node* hex[], float Rhex, float sigmaVsR=CONVOLHEX_sigmaVsR, float IMaskRVsR=CONVOLHEX_IMaskRVsR);
+	unsigned char init(Img* iimg, s_Node* hex[], float Rhex, float sigmaVsR=CONVOLHEX_sigmaVsR, float IMaskRVsR=CONVOLHEX_IMaskRVsR);/*used by HexImg, this and the func below need to be merged: a.k.a. this one should be removed at some point*/
+	unsigned char init(Img* iimg, float Rhex, float sigmaVsR = CONVOLHEX_sigmaVsR, float IMaskRVsR = CONVOLHEX_IMaskRVsR);/*init for version that uses threaded, right now used by HexEyeImg*/
 	void release();
 	inline void update(Img* iimg) { m_img = iimg; }
 	unsigned char convulToHex(int col_i);
