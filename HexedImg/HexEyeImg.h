@@ -29,6 +29,8 @@ public:
 																				if the node is off the image the ij node coords are set to negative
 																				uses the xy coord set in each node when the eye is generated to calculate
 																				the original offset of the node from the center*/
+	void release();
+
 	unsigned char root(Img* baseImg, s_HexEye& heye);/*this transfers the coord calculated an put in the refEye at init into the s_HexEye
 													   and checks that the image has the correct dimensions to match what was initialized
 													   heye must be spawned by genHexEye*/
@@ -37,9 +39,11 @@ public:
 													   heye must already have root run on it*/
 
 protected:
+	/*not owned*/
+	HexEye* m_genHexEye;
+	/*owned*/
 	float   m_imgWidth;
 	float   m_imgHeight;
-	HexEye* m_hexEye;
 	ConvolHex* m_Convol;
 
 	s_HexEye* m_refHexEye;

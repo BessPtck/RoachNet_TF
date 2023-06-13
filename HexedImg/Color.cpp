@@ -3,10 +3,7 @@
 s_ColPlateLayer::s_ColPlateLayer() { ; }
 s_ColPlateLayer::~s_ColPlateLayer() { ; }
 
-unsigned char Col::init(HexImg* genHexImg, int nCols) {
-	if (genHexImg == NULL)
-		return ECODE_FAIL;
-	m_genHexImg = genHexImg;
+unsigned char Col::init(int nCols) {
 	m_genCol = new ColPlate;
 	if (Err(m_genCol->init()))
 		return ECODE_FAIL;
@@ -29,7 +26,6 @@ void Col::release() {
 		delete m_genCol;
 		m_genCol = NULL;
 	}
-	m_genHexImg = NULL;
 }
 unsigned char Col::addCol(s_ColWheel* col) {
 	if (col == NULL)

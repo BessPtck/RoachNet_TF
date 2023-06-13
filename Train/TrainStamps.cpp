@@ -25,6 +25,9 @@ unsigned char TrainStamps::init(float scale_r, float gaus_smudge_sigma_divisor, 
 	/*find the image dimension of the lowest hexes, which is the same as the dim of the eye*/
 	float lowest_eye_dim = (m_baseEye->height >= m_baseEye->width) ? (float)m_baseEye->height : (float)m_baseEye->width;
 	float padded_eye_dim = lowest_eye_dim + TRAINSTAMPS_lowest_eye_dim_padding_multiplier * scale_r + TRAINSTAMPS_eye_dim_extension_multiplier*scale_r;
+	m_baseImg = new Img;
+	if (Err(m_baseImg->init(padded_eye_dim, padded_eye_dim, 3L)))
+		return ECODE_FAIL;
 	if (Err(m_genStamps->init(padded_eye_dim, scale_r)))
 		return ECODE_FAIL;
 	m_genPreImgs = new GenPreImgs;
@@ -44,6 +47,35 @@ unsigned char TrainStamps::init(float scale_r, float gaus_smudge_sigma_divisor, 
 	if (Err(m_tga->Init()))
 		return ECODE_FAIL;
 	/* end of  debug*/
+	m_hexEyeImg = new HexEyeImg;
+	s_2pt eyeCenter = { padded_eye_dim / 2.f, padded_eye_dim / 2.f };
+	if(Err(m_hexEyeImg->init(m_baseImg, eyeCenter, m_genEye)))
+		return ECODE_FAIL;
+
+	/*start of stuff used for luna */
+	m_whiteColWheel.pixMax = 255.f;
+	m_whiteColWheel.Dhue = 1.f;
+	m_whiteColWheel.DI = 1.f;
+	m_whiteColWheel.DSat = 0.f;
+	m_whiteColWheel.HueFadeV = 0.5f;
+	m_whiteColWheel.I_target = 1.f;
+	m_whiteColWheel.Hue_target.x0 = 1.f;
+	m_whiteColWheel.Hue_target.x1 = 0.f;
+	m_whiteColWheel.Sat_target = 0.f;
+
+	m_genCol = new Col;
+	int number_of_colors_and_color_plate_layers = 1;
+	if (Err(m_genCol->init(number_of_colors_and_color_plate_layers)))
+		return ECODE_FAIL;
+	if (Err(m_genCol->addCol(&m_whiteColWheel)))
+		return ECODE_FAIL;
+	m_genLuna = new Luna;
+	if (Err(m_genLuna->init(m_scale_r)))/*use one color plate by default*/
+		return ECODE_FAIL;
+	m_lunaPat = new s_Luna;
+	if (Err(m_genLuna->spawn(m_lunaPat)))
+		return ECODE_FAIL;
+
 	return ECODE_OK;
 }
 unsigned char TrainStamps::genRawStamps() {
@@ -216,8 +248,8 @@ unsigned char TrainStamps::dumpImgs(std::string& PathToFile, Img* dImgs[], int n
 		std::string net_num(to_string(i));
 		file_name += net_num;
 		file_name += CTARGAIMAGE_IMGFILESUF;
-		m_tga->Open(dImgs[i]->getImg(), dImgs[i]->getWidth(), dImgs[i]->getHeight, false, IMAGE_RGB);
-		unsigned char err=m_tga->Write(file_name.c_str(), dImgs[i]->GetColorMode());
+		m_tga->Open(dImgs[i]->getImg(), dImgs[i]->getWidth(), dImgs[i]->getHeight(), false, IMAGE_RGB);
+		unsigned char err=m_tga->Write(file_name.c_str(), dImgs[i]->getColorMode());
 		m_tga->Close();
 		if (Err(err)) {
 			return err;
@@ -229,5 +261,63 @@ unsigned char TrainStamps::dumpImgs(std::string& PathToFile, Img* dImgs[], int n
 unsigned char TrainStamps::genEyes(int stamp_NNet_num) {
 	/*assumes the variables that re-write each selected nnet target have been filled*/
 	m_nnet_hexEyes = new s_HexEye[m_numPreStamps];
+	for (int i = 0; i < m_numPreStamps; i++) {
+		if (Err(m_genEye->spawn(&(m_nnet_hexEyes[i]))))
+			return ECODE_FAIL;
+		/*all stamps have the same dimensions as the base image*/
+		if(Err(m_hexEyeImg->root(m_baseImg, m_nnet_hexEyes[i])))
+			return ECODE_FAIL;
+	}
 
+	return ECODE_OK;
+}
+unsigned char TrainStamps::genColPlates() {
+	m_colPlates = new s_ColPlateLayer *[m_numPreStamps];
+	for (int i = 0; i < m_numPreStamps; i++) {
+		m_colPlates[i] = new s_ColPlateLayer;
+		s_HexPlate* eye_plate_hexed_image = m_nnet_hexEyes[i].getBottom();
+		s_HexPlate* ext_plate = new s_HexBasePlate;
+		ext_plate->init(eye_plate_hexed_image);
+		unsigned char err = m_genCol->spawn((s_HexBasePlate*)ext_plate, m_colPlates[i]);
+		/*since the plate is copied by the spawn when the col plate is init, col plate has seperate copy so tmp HexBasePlate can be deleted*/
+		ext_plate->release();
+		delete ext_plate;
+		if (Err(err))
+			return err;
+	}
+	return ECODE_OK;
+}
+unsigned char TrainStamps::genLunaLayers() {
+	m_lunaLayers = new s_HexBasePlateLayer * [m_numPreStamps];
+	for (int i = 0; i < m_numPreStamps; i++) {
+		m_lunaLayers[i] = new s_HexBasePlateLayer;
+		s_HexBasePlate* structure_hexedLunaPlate = (s_HexBasePlate*)m_colPlates[i]->get(0);
+		unsigned char errc = m_genLuna->spawn(m_lunaPat, m_lunaLayers[i], structure_hexedLunaPlate);
+		if (Err(errc))
+			return errc;
+	}
+	return ECODE_OK;
+}
+
+unsigned char TrainStamps::runLunaOnEyes(int stamp_NNet_num) {
+	/*for this part m_preImgs must have been generated*/
+	for (int i = 0; i < m_numPreStamps; i++) {
+		/*run the base of the eye on the image hexing the image*/
+		if (Err(m_hexEyeImg->run(m_preImgs[i], m_nnet_hexEyes[i])))
+			return ECODE_FAIL;
+
+		/*run the color plate*/
+		s_HexPlate* eye_plate_hexed_image = m_nnet_hexEyes[i].getBottom();
+		s_HexPlate* ext_plate = new s_HexBasePlate;
+		ext_plate->init(eye_plate_hexed_image);
+		for(long plate_index=0; plate_index<ext_plate->N; plate_index++)
+			n_Col::run((s_HexBasePlate*)ext_plate, m_colPlates[i], plate_index);
+		ext_plate->release();
+		delete ext_plate;
+
+		/*run the lunas on the now colored color plates*/
+		for (long plate_index = 0; plate_index < m_nnet_hexEyes[i].N; plate_index++) {
+			n_Luna::run(m_colPlates[i], m_lunaLayers[i], plate_index);
+		}
+	}
 }

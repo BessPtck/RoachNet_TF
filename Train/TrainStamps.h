@@ -6,11 +6,14 @@
 #ifndef CONVOLHEX_H
 #include "../HexedImg/ConvolHex.h"
 #endif
-#ifndef HEXEYE_H
-#include "../HexedImg/HexEye.h"
+#ifndef HEXEYEIMG_H
+#include "../HexedImg/HexEyeImg.h"
 #endif
 #ifndef GENPREIMGS_H
 #include "GenPreImgs.h"
+#endif
+#ifndef COLOR_H
+#include "../HexedImg/Color.h"
 #endif
 #ifndef LUNA_H
 #include "../Luna/Luna.h"
@@ -44,13 +47,22 @@ protected:
 	ConvolHex* m_Convol;/*takes the hexes from the eye that is overlayed on the stamp and does the gaus convol to fill the lowest hexes*/
 	HexEye* m_genEye;/*generator of the eye*/
 	s_HexEye* m_baseEye;/*the eye that lies on top of the current stamp image*/
+	Img* m_baseImg;/*image with the corrrect dimensions for the base image under the eye*/
 	ParseTxt* m_parse;/*object used to parse info*/
 	/*this exists if doing debug*/
 	CTargaImage* m_tga;
 	/* emd of debug*/
+	HexEyeImg* m_hexEyeImg;/*this is used to take values from the image and color the hexes for the base of the hexeye structs*/
 
 	Stamp* m_genStamps;/*class that generates stamps*/
 	GenPreImgs* m_genPreImgs;/*class that takes the stamps and sets them up for input into the NNet with an increas in signal and optional smudging of the background*/
+
+	/*start of luna stuff*/
+	s_ColWheel m_whiteColWheel;
+	Col* m_genCol;/*generates color plate layers*/
+	Luna* m_genLuna;
+	s_Luna* m_lunaPat;
+	/*end of luna stuff*/
 
 	float       m_scale_r;
 	/*util vars filled at run time*/
@@ -100,13 +112,28 @@ protected:
 	  when this is finished the value 1 to 0 for intensity of each hex
 	  representing a luna value and for all luna plates is dumped
 	  these values go into the nnet trained by tensorflow */
-	s_hexEye* m_nnet_hexEyes;/*array that is created and deleted for each 
+	s_HexEye* m_nnet_hexEyes;/*array that is created and deleted for each 
 							   selected stamp/net feed into trained nnet
 							   that contains the hexeyes runn on the sig and 
 							   bac images after full smudge preperation 
 							   extra back gen ect*/
+	
+	s_ColPlateLayer** m_colPlates;/*col plates that should look nearly identical to 
+							the bottom plates of the hexEyes
+							have the same number as the number of hexEyes*/
+	s_HexBasePlateLayer** m_lunaLayers;/*array of HexBasePlateLayers where each lunaLayer
+									  is the result of the lunas being run on one of the 
+									  eyes
+									  the number of lunaLayers should be the same as the
+									  number of hex eyes*/
 	unsigned char genEyes(int stamp_NNet_num);/*uses m_preImgs*/
 	void          releaseEyes();
+	unsigned char genColPlates();
+	void          releaseColPlates();
+	unsigned char genLunaLayers();
+	void          releaseLunaLayers();
+
+	unsigned char runLunaOnEyes(int stamp_NNet_num);
 	/********************************************************************/
 	/*nnet values presumed comming from tensor flow are put back into
 	  the trained nnets */

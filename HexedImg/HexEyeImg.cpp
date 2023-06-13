@@ -9,8 +9,11 @@ unsigned char HexEyeImg::init(Img* baseImg, s_2pt& eye_center, HexEye* genHexEye
 		return ECODE_FAIL;
 	if (baseImg->getHeight() <= 1)
 		return ECODE_FAIL;
+	if (genHexEye == NULL)
+		return ECODE_FAIL;
+	m_genHexEye = genHexEye;
 	m_refHexEye = new s_HexEye;
-	if(Err(genHexEye->spawn(m_refHexEye)))
+	if(Err(m_genHexEye->spawn(m_refHexEye)))
 		return ECODE_FAIL;
 	long num_nodes_set = 0;
 	for (int i_level = 0; i_level < m_refHexEye->N; i_level++) {
@@ -27,9 +30,51 @@ unsigned char HexEyeImg::init(Img* baseImg, s_2pt& eye_center, HexEye* genHexEye
 	if (num_nodes_set < 1)
 		return ECODE_ABORT;/*the eye is off the image*/
 	m_Convol = new ConvolHex;
-	if (Err(m_Convol->init(baseImg, m_hexEye->getBottomR())))
+	if (Err(m_Convol->init(baseImg, m_genHexEye->getBottomR())))
 		return ECODE_FAIL;
 	return ECODE_OK;
+}
+void HexEyeImg::release() {
+	if (m_Convol != NULL) {
+		m_Convol->release();
+		delete m_Convol;
+	}
+	m_Convol = NULL;
+	if (m_genHexEye != NULL) {
+		m_genHexEye->despawn(m_refHexEye);
+	}
+	m_genHexEye = NULL;
+	if (m_refHexEye != NULL)
+		delete m_refHexEye;
+}
+
+unsigned char HexEyeImg::root(Img* baseImg, s_HexEye& heye) {
+	if (baseImg->getWidth() != m_imgWidth || baseImg->getHeight() != m_imgHeight)
+		return ECODE_ABORT;
+	if (m_refHexEye->N != heye.N)
+		return ECODE_ABORT;
+	for (int i_level = 0; i_level < m_refHexEye->N; i_level++) {
+		s_HexPlate* ref_plate = m_refHexEye->get(i_level);
+		s_HexPlate* heye_plate = heye.get(i_level);
+		if (heye_plate == NULL)
+			return ECODE_FAIL;
+		if (ref_plate->N != heye_plate->N)
+			return ECODE_FAIL;
+		for (long i_node = 0; i_node < ref_plate->N; i_node++) {
+			s_Hex* ref_node = ref_plate->get(i_node);
+			s_Hex* heye_node = heye_plate->get(i_node);
+			if (heye_node == NULL)
+				return ECODE_FAIL;
+			heye_node->i = ref_node->i;
+			heye_node->j = ref_node->j;
+			heye_node->x = ref_node->x;
+			heye_node->y = ref_node->y;
+		}
+	}
+	return ECODE_OK;
+}
+unsigned char HexEyeImg::run(Img* baseImg, s_HexEye& heye) {
+	return runSingleThread(baseImg, heye);
 }
 
 unsigned char HexEyeImg::resetNodeToImgCoord(Img* baseImg, s_2pt& eye_center, s_Hex* hex_nd) {

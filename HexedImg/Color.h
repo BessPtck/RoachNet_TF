@@ -18,7 +18,7 @@ public:
 	Col();
 	~Col();
 
-	unsigned char init(HexImg* genHexImg, int nCols);
+	unsigned char init(int nCols);
 	void          release();
 
 	unsigned char addCol(s_ColWheel* col);/*this col is copied object does not need to continue existance*/
@@ -36,7 +36,6 @@ public:
 	inline int    getNCols() { return m_N_Cols; }
 protected:
 	/*not owned*/
-	HexImg* m_genHexImg;
 
 	/*owned*/
 	ColPlate*  m_genCol;/*gen helper*/
