@@ -44,7 +44,7 @@ public:
 	void          release();
 
 	unsigned char spawn(
-		s_HexBasePlate* hexedImg,
+		s_HexPlate* hexedImg,
 		s_ColPlate* colPlate,
 		const s_ColWheel& Col
 	);
@@ -52,7 +52,7 @@ public:
 	
 	void resetCol(s_ColPlate* colPlate, const s_ColWheel& Col);
 protected:
-	unsigned char setDownLinks(s_HexBasePlate* hexedImg, s_ColPlate* colPlate);
+	unsigned char setDownLinks(s_HexPlate* hexedImg, s_ColPlate* colPlate);
 	void setColWheelUnitVectors(s_ColWheel& col);
 };
 namespace n_ColWheel {
@@ -61,7 +61,7 @@ namespace n_ColWheel {
 	void copy(s_ColWheel& Col, const s_ColWheel& orig);
 }
 namespace n_ColPlate {
-	bool run(s_HexBasePlate* hexedImg, s_ColPlate* colPlate, long plate_index);
+	bool run(s_HexPlate* hexedImg, s_ColPlate* colPlate, long plate_index);
 
 	float findColDistances(s_ColWheel& cw, float rgb[]);
 	/*helpers to findColDistances*/

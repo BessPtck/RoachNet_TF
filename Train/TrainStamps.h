@@ -6,14 +6,8 @@
 #ifndef CONVOLHEX_H
 #include "../HexedImg/ConvolHex.h"
 #endif
-#ifndef HEXEYEIMG_H
-#include "../HexedImg/HexEyeImg.h"
-#endif
-#ifndef GENPREIMGS_H
-#include "GenPreImgs.h"
-#endif
-#ifndef COLOR_H
-#include "../HexedImg/Color.h"
+#ifndef TRAINSTAMPSBASE_H
+#include "TrainStampsBase.h"
 #endif
 #ifndef LUNA_H
 #include "../Luna/Luna.h"
@@ -25,6 +19,22 @@ float TRAINSTAMPS_eye_dim_extension_multiplier = 4.f;/*extension is for luna ove
 #define TRAINSTAMPS_NETTARGET_PREFIX_DIR "NNet"/*each of the dirs NNet1, NNet2 etc will contain the images and keys for the training stamps for one of the nnets*/
 #define TRAINSTAMPS_PRENET_DIR "Pre" /*directory where the results of the smudge and sig increase with their correct keys are put*/
 #define TRAINSTAMPS_DEBUGIMG_DIR "DebugImg"
+
+struct s_trainStamps_pipes {
+	s_HexPlate** eyeBase;
+	s_HexPlateLayer** col;
+	s_HexPlateLayer** luna;
+	int N;/*length of arrays*/
+	int N_max;/*length of arrays in memory*/
+	int nnet_num;
+};
+namespace n_trainStamps_pipes {
+	unsigned char init(int nnet_num, int array_len, s_trainStamps_pipes &sp);/*creates new sub objects but does not init them*/
+	void          release(s_trainStamps_pipes& sp);
+
+	unsigned char fill(s_HexPlate* hexedImg, s_HexPlateLayer* colPlates, s_HexPlateLayer* lunaPlates, s_trainStamps_pipes& sp);
+	void          empty(s_trainStamps_pipes& sp);
+}
 
 class TrainStamps : public Base {
 public:
@@ -57,12 +67,22 @@ protected:
 	Stamp* m_genStamps;/*class that generates stamps*/
 	GenPreImgs* m_genPreImgs;/*class that takes the stamps and sets them up for input into the NNet with an increas in signal and optional smudging of the background*/
 
-	/*start of luna stuff*/
+	/******************************************/
+	/***start of luna stuff***/
+
 	s_ColWheel m_whiteColWheel;
 	Col* m_genCol;/*generates color plate layers*/
 	Luna* m_genLuna;
 	s_Luna* m_lunaPat;
-	/*end of luna stuff*/
+	
+	/*all objects in processing of image*/
+	s_HexEye* m_nnet_hexEye;
+	s_ColPlateLayer* m_colPlates;/*really only one plate*/
+	s_HexBasePlateLayer* m_lunaPlates;/*all the luna plates for each luna rot run on the color plate(of the colplatelayer)*/
+
+
+	/***end of luna stuff***/
+	/******************************************/
 
 	float       m_scale_r;
 	/*util vars filled at run time*/
@@ -112,28 +132,20 @@ protected:
 	  when this is finished the value 1 to 0 for intensity of each hex
 	  representing a luna value and for all luna plates is dumped
 	  these values go into the nnet trained by tensorflow */
-	s_HexEye* m_nnet_hexEyes;/*array that is created and deleted for each 
-							   selected stamp/net feed into trained nnet
-							   that contains the hexeyes runn on the sig and 
-							   bac images after full smudge preperation 
-							   extra back gen ect*/
-	
-	s_ColPlateLayer** m_colPlates;/*col plates that should look nearly identical to 
-							the bottom plates of the hexEyes
-							have the same number as the number of hexEyes*/
-	s_HexBasePlateLayer** m_lunaLayers;/*array of HexBasePlateLayers where each lunaLayer
-									  is the result of the lunas being run on one of the 
-									  eyes
-									  the number of lunaLayers should be the same as the
-									  number of hex eyes*/
-	unsigned char genEyes(int stamp_NNet_num);/*uses m_preImgs*/
-	void          releaseEyes();
-	unsigned char genColPlates();
-	void          releaseColPlates();
-	unsigned char genLunaLayers();
-	void          releaseLunaLayers();
+	  /*debug*/
+	s_trainStamps_pipes* m_stampPipes;/*used to save the hexed images after each stage this is deleted and
+									 overwritten for each nnet*/
+
+	unsigned char genPipeObjsForLuna();/*generates all the constructs that for each image run on a stamp are filled
+									     to ultimately result in a set of plates with the luna values recorded in them*/
+	void          releasePipeObjsForLuna();
 
 	unsigned char runLunaOnEyes(int stamp_NNet_num);
+	/*  debug */
+	unsigned char genStampPipes(int stamp_NNet_num);/*copies base of m_nnet_hexEye, m_colPlates and m_LunaPlates into curent stampPipe*/
+	void          releaseStampPipes();
+	unsigned char genStampPipeForStamp();
+	void          releaseStampsPipeForStamp();
 	/********************************************************************/
 	/*nnet values presumed comming from tensor flow are put back into
 	  the trained nnets */

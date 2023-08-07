@@ -222,6 +222,7 @@ public:
 	s_HexPlateLayer();
 	~s_HexPlateLayer();
 	unsigned char init(int Nplates);/*just initializes the pointers for s_HexPlate and sets N_mem*/
+	unsigned char init(const s_HexPlateLayer* pl);
 	void          release();
 	virtual inline s_HexPlate* get(int indx) { return p[indx]; }
 	inline int getNmem() { return N_mem; }

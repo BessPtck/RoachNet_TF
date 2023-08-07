@@ -845,6 +845,22 @@ unsigned char s_HexPlateLayer::init(int Nplates) {
 	N_mem = Nplates;
 	N = 0;
 }
+unsigned char s_HexPlateLayer::init(const s_HexPlateLayer* pl) {
+	if (pl->p == NULL)
+		return ECODE_ABORT;
+	int Nplates = pl->N;
+	unsigned char errc = init(Nplates);
+	if (errc != ECODE_OK)
+		return errc;
+	for (int ii = 0; ii < Nplates; ii++) {
+		if (pl->p[ii] == NULL)
+			return ECODE_ABORT;
+		errc = this->p[ii]->init(pl->p[ii]);
+		if (errc != ECODE_OK)
+			return ECODE_FAIL;
+	}
+	return ECODE_OK;
+}
 void s_HexPlateLayer::release() {
 	if (p != NULL) {
 		delete[] p;

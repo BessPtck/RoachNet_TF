@@ -1,4 +1,39 @@
 #include "TrainStamps.h"
+unsigned char n_trainStamps_pipes::init(int nnet_num, int array_len, s_trainStamps_pipes& sp) {
+	if (array_len < 1)
+		return ECODE_ABORT;
+	sp.eyeBase = new s_HexPlate* [array_len];
+	sp.col = new s_HexPlateLayer* [array_len];
+	sp.luna = new s_HexPlateLayer* [array_len];
+	for (int ii = 0; ii < array_len; ii++) {
+		sp.eyeBase[ii] = NULL;
+		sp.col[ii] = NULL;
+		sp.luna[ii] = NULL;
+	}
+	sp.N = 0;
+	sp.N_max = array_len;
+	sp.nnet_num = nnet_num;
+	return ECODE_OK;
+}
+unsigned char n_trainStamps_pipes::fill(s_HexPlate* hexedImg, s_HexPlateLayer* colPlates, s_HexPlateLayer* lunaPlates, s_trainStamps_pipes& sp) {
+	if (sp.N >= sp.N_max)
+		return ECODE_ABORT;
+	unsigned char errc = ECODE_OK;
+	sp.eyeBase[sp.N] = new s_HexPlate;
+	errc=sp.eyeBase[sp.N]->init(hexedImg);
+	if (errc != ECODE_OK)
+		return ECODE_FAIL;
+	sp.col[sp.N] = new s_HexPlateLayer;
+	errc=sp.col[sp.N]->init(colPlates);
+	if (errc != ECODE_OK)
+		return ECODE_FAIL;
+	sp.luna[sp.N] = new s_HexPlateLayer;
+	errc=sp.luna[sp.N]->init(lunaPlates);
+	if (errc != ECODE_OK)
+		return ECODE_FAIL;
+
+	return ECODE_OK;
+}
 
 unsigned char TrainStamps::init(float scale_r, float gaus_smudge_sigma_divisor, float smudge_mult_factor_for_offset, float smudge_angle, int num_bak_smudge, float exclusion_train_ang, float exclusion_train_opening_DAng) {
 	m_scale_r = scale_r;
@@ -257,67 +292,63 @@ unsigned char TrainStamps::dumpImgs(std::string& PathToFile, Img* dImgs[], int n
 	}
 	return ECODE_OK;
 }
+unsigned char TrainStamps::genPipeObjsForLuna() {
+	/*generates an eye that is just under the size of the image*/
+	m_nnet_hexEye = new s_HexEye;
+	if (Err(m_genEye->spawn(m_nnet_hexEye)))
+		return ECODE_FAIL;
+	if (Err(m_hexEyeImg->root(m_baseImg, *m_nnet_hexEye))) /*roots the eye in the center of the image*/
+		return ECODE_FAIL;
 
-unsigned char TrainStamps::genEyes(int stamp_NNet_num) {
-	/*assumes the variables that re-write each selected nnet target have been filled*/
-	m_nnet_hexEyes = new s_HexEye[m_numPreStamps];
-	for (int i = 0; i < m_numPreStamps; i++) {
-		if (Err(m_genEye->spawn(&(m_nnet_hexEyes[i]))))
-			return ECODE_FAIL;
-		/*all stamps have the same dimensions as the base image*/
-		if(Err(m_hexEyeImg->root(m_baseImg, m_nnet_hexEyes[i])))
-			return ECODE_FAIL;
-	}
+	/*generate the color plate layer and attach it to the bottom plate of the hex eye*/
+	m_colPlates = new s_ColPlateLayer;
+	s_HexPlate* bottom_plate_hexeye = m_nnet_hexEye->getBottom();
+	if (Err(m_genCol->spawn(bottom_plate_hexeye, m_colPlates)))
+		return ECODE_FAIL;
 
-	return ECODE_OK;
-}
-unsigned char TrainStamps::genColPlates() {
-	m_colPlates = new s_ColPlateLayer *[m_numPreStamps];
-	for (int i = 0; i < m_numPreStamps; i++) {
-		m_colPlates[i] = new s_ColPlateLayer;
-		s_HexPlate* eye_plate_hexed_image = m_nnet_hexEyes[i].getBottom();
-		s_HexPlate* ext_plate = new s_HexBasePlate;
-		ext_plate->init(eye_plate_hexed_image);
-		unsigned char err = m_genCol->spawn((s_HexBasePlate*)ext_plate, m_colPlates[i]);
-		/*since the plate is copied by the spawn when the col plate is init, col plate has seperate copy so tmp HexBasePlate can be deleted*/
-		ext_plate->release();
-		delete ext_plate;
-		if (Err(err))
-			return err;
-	}
-	return ECODE_OK;
-}
-unsigned char TrainStamps::genLunaLayers() {
-	m_lunaLayers = new s_HexBasePlateLayer * [m_numPreStamps];
-	for (int i = 0; i < m_numPreStamps; i++) {
-		m_lunaLayers[i] = new s_HexBasePlateLayer;
-		s_HexBasePlate* structure_hexedLunaPlate = (s_HexBasePlate*)m_colPlates[i]->get(0);
-		unsigned char errc = m_genLuna->spawn(m_lunaPat, m_lunaLayers[i], structure_hexedLunaPlate);
-		if (Err(errc))
-			return errc;
-	}
+	/*generate the luna layers object and imbedd the luna in the object*/
+	m_lunaPlates = new s_HexBasePlateLayer;
+	if (Err(m_genLuna->spawn(m_lunaPat, m_lunaPlates, m_colPlates)))
+		return ECODE_FAIL;
+
 	return ECODE_OK;
 }
 
 unsigned char TrainStamps::runLunaOnEyes(int stamp_NNet_num) {
+	/*debug*/
+	genStampPipes(stamp_NNet_num);
+	/*     */
 	/*for this part m_preImgs must have been generated*/
 	for (int i = 0; i < m_numPreStamps; i++) {
-		/*run the base of the eye on the image hexing the image*/
-		if (Err(m_hexEyeImg->run(m_preImgs[i], m_nnet_hexEyes[i])))
+		/*run the base of the eye on the image hexing the image, the eye has already been rooted in the correct location*/
+		if (Err(m_hexEyeImg->run(m_preImgs[i], *m_nnet_hexEye)))
 			return ECODE_FAIL;
+		s_HexPlate* hexedEyeImage = m_nnet_hexEye->getBottom();
+		long num_hexes = hexedEyeImage->N;
 
-		/*run the color plate*/
-		s_HexPlate* eye_plate_hexed_image = m_nnet_hexEyes[i].getBottom();
-		s_HexPlate* ext_plate = new s_HexBasePlate;
-		ext_plate->init(eye_plate_hexed_image);
-		for(long plate_index=0; plate_index<ext_plate->N; plate_index++)
-			n_Col::run((s_HexBasePlate*)ext_plate, m_colPlates[i], plate_index);
-		ext_plate->release();
-		delete ext_plate;
+		/*run the col plate*/
+		for (long plate_hex_i = 0; plate_hex_i < num_hexes; plate_hex_i++)
+			n_Col::run(hexedEyeImage, m_colPlates, plate_hex_i);
 
-		/*run the lunas on the now colored color plates*/
-		for (long plate_index = 0; plate_index < m_nnet_hexEyes[i].N; plate_index++) {
-			n_Luna::run(m_colPlates[i], m_lunaLayers[i], plate_index);
-		}
+		/*run the lunas, for imbedded*/
+		for(long plate_hex_i=0; plate_hex_i<num_hexes; plate_hex_i++)
+			n_Luna::run(m_colPlates, m_lunaPlates, plate_hex_i);
+		/*debug*/
+		if (Err(genStampPipeForStamp()))/*s_trainStamps_pipes auto increments internally, 
+										this function automatically grabs the appropriate class variables
+										creating simple copys of the bottom of the nnet_hexEye, colPlates, and lunaPlates*/
+			return ECODE_FAIL;
+		/*    */
 	}
+	return ECODE_OK;
+}
+
+unsigned char TrainStamps::genStampPipes(int stamp_NNet_num) {
+	m_stampPipes = new s_trainStamps_pipe;
+	if (Err(n_trainStamps_pipes::init(stamp_NNet_num, m_numPreStamps, *m_stampPipes)))
+		return ECODE_FAIL;
+	return ECODE_OK;
+}
+unsigned char TrainStamps::genStampPipeForStamp() {
+	return n_trainStamps_pipes::fill(m_nnet_hexEye->getBottom(), m_colPlates, m_lunaPlates, *m_stampPipes);
 }
