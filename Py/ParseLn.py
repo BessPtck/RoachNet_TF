@@ -1,6 +1,7 @@
 
 
 def numberToString(num):
+    num=int(num)
     retStr=""
     if num<10:
         retStr="00" + str(num)
@@ -16,11 +17,9 @@ def readLines(ffileIn):
     ffile=open(ffileIn, "r")
     fline=ffile.readline()
     while fline:
-        fline=ffile.readline()
         commaloc=fline.find(",")
         retline_ar=[]
-        while commaloc>=0:
-            
+        while commaloc>=0:      
             fieldstr=fline[:commaloc]
             retline_ar.append(float(fieldstr))
             line_length+=1
@@ -29,6 +28,7 @@ def readLines(ffileIn):
             fline=remstr
             commaloc=fline.find(",")
         lines_arr.append(retline_ar)
+        fline=ffile.readline()
 
     ffile.close()
     return lines_arr

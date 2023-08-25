@@ -5,5 +5,5 @@ keyFile="Keys"
 masterFile="masterKey"
 keySufix=".txt"
 imgFile="imgf"
-imgFileSufix=".tga"
+imgFileSufix=".jpg" #".tga"
 

@@ -93,12 +93,12 @@ def genRawStamps(scale_r,
         
 
 def GenStamps(scale_r=7.0,
-              smudge_mult_factor_for_offset=2.0,#determines how much signal and background are smudged in translation, this is given in terms of r
+              smudge_mult_factor_for_offset=0.5,#determines how much signal and background are smudged in translation, this is given in terms of r
               gauss_width_in_sigma=3.0, #how far out the smudge will go in sigmal
-              smudge_angle_2pi_divs=48.0,
-              bak_smudge_N=3,
+              smudge_angle_2pi_divs=120.0,
+              bak_smudge_N=1,
               baseDir="Dat",
-              subDir="L0",
+              subDir="L0",#L0 right now gnerates jpg for debug
               sigDir="Sig",
               bakDir="Bak",
               nnetDir="NNet",
@@ -107,9 +107,13 @@ def GenStamps(scale_r=7.0,
               ):
     genRawStamps(scale_r, smudge_mult_factor_for_offset, gauss_width_in_sigma, smudge_angle_2pi_divs, bak_smudge_N, baseDir, subDir)
 
+    outDir = baseDir+"/"+subDir
     #take the stamps create the background in the background dir and create the key files that exclude overlaps in the NNet## directories
     preFeed=StampsPreFeed.StampPreFeed(math.pi/12.0,
                                        0.2,
+                                       math.pi/12.0,
+                                       0.0,
+                                       0.334,
                                        outDir,
                                        sigDir,
                                        bakDir,
@@ -125,6 +129,7 @@ def GenStamps(scale_r=7.0,
                                              bakSufix,
                                              sigDir,
                                              bakDir,
+                                             "_smudge",
                                              smudge_mult_factor_for_offset,
                                              gauss_width_in_sigma,
                                              smudge_angle_2pi_divs,
@@ -132,4 +137,5 @@ def GenStamps(scale_r=7.0,
     NNetFeed.run()
     return True
 
+GenStamps()
 

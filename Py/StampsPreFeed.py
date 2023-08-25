@@ -1,3 +1,4 @@
+import g_stamp
 import os
 import shutil
 import math
@@ -10,86 +11,99 @@ import ParseLn
 # and the masterkey files in the NNet directories
 
 class StampPreFeed:
-    m_baseDir=""
-    m_bakDir=""
-    m_sigDir=""
-    m_nnetDir=""
-    m_sigSufix=""
-    m_bakSufix=""
-   
-    m_ang_minDelta=0.0
-    m_invR_minDelta=0.0 #R is normalized to dimensions of image
-
-    m_maxNNet_rm_cnt=0
 
     def __init__(self, 
                  ang_minDelta=math.pi/12.0,
                  invR_minDelta=0.2,#normalized in units of D
-                 baseDir="Stamps/L0",
+                 openingAng_minDelta=math.pi/12.0,
+                 ang_min_pifac=0.0, #min angle for signal, just training one of the 6 possible hex orientations then using symetry of the hex
+                 ang_max_pifac=0.334,#max angle for signal, will not train all NNets just one of the hex orientations ...001 correct for rounding error
+                 baseDir="Dat/L0",
                  sigDir="Sig",
                  bakDir="Bak",
                  nnetDir="NNet",
                  sigSufix="_sig",
                  bakSufix="_bak",
-                 maxNNet_rm_cnt=300):
-        self.m_ang_minDelta=ang_minDelta
-        self.m_invR_minDelta=invR_minDelta
-        self.m_baseDir=baseDir
-        self.m_bakDir=bakDir
-        self.m_sigDir=sigDir
-        self.m_nnetDir=nnetDir
-        self.m_sigSufix=sigSufix
-        self.m_bakSufix=bakSufix
+                 maxNNet_rm_cnt=1000):
+        self.ang_minDelta=ang_minDelta
+        self.invR_minDelta=invR_minDelta #R is normalized to dimensions of image
+        self.openingAng_minDelta=openingAng_minDelta
+        self.ang_min=float(ang_min_pifac)*math.pi
+        self.ang_max=float(ang_max_pifac)*math.pi
+        self.baseDir=baseDir
+        self.bakDir=bakDir
+        self.sigDir=sigDir
+        self.nnetDir=nnetDir
+        self.sigSufix=sigSufix
+        self.bakSufix=bakSufix
+        self.maxNNet_rm_cnt=maxNNet_rm_cnt
 
-    def run():
-        clearDirs()
-        genBak()
-        masterKeyPath = m_baseDir+"/"+g_const_Stamp_masterFile+g_const_Stamp_keySufix
+    def run(self):
+        self.clearDirs() 
+        self.genBak()
+        masterKeyPath = self.baseDir+"/"+g_stamp.masterFile+g_stamp.keySufix
         masterKey_arr2=ParseLn.readLines(masterKeyPath)
         if(len(masterKey_arr2)<1):
             return False
         s_masterKey=masterKey_arr2[0]
         imgDim=s_masterKey[1]
-        return genNNets(imgDim,s_masterKey)
+        if(imgDim<1):
+            return False
+        return self.genNNets(imgDim,s_masterKey)
 
-    def clearDirs():
-        #baseDir=g_const_Stamp_baseDir+"/"+g_const_Stamp_stampBaseDir+"/"
-        bakDirPath=m_baseDir+"/"+m_bakDir
+    def clearDirs(self):
+        bakDirPath=self.baseDir+"/"+self.bakDir
         if os.path.exists(bakDirPath):
             shutil.rmtree(bakDirPath)
-        for net_i in range(m_maxNNet_rm_cnt):
-            nnetDirPath = m_baseDir+"/"+m_nnetDir+ParseLn.numberToString(net_i)
+        for net_i in range(self.maxNNet_rm_cnt):
+            nnetDirPath = self.baseDir+"/"+self.nnetDir+ParseLn.numberToString(net_i)
             if os.path.exists(nnetDirPath):
                 shutil.rmtree(nnetDirPath)
-            else:
-                break
+                print("removing: ", nnetDirPath)
 
     #nothing is done with background in this case except to copy the signal
-    def genBak():
-        bakDirPath=m_baseDir+"/"+m_bakDir
+    def genBak(self):
+        bakDirPath=self.baseDir+"/"+self.bakDir
+        if os.path.exists(bakDirPath):
+            return
         os.mkdir(bakDirPath)
         #copy all the signal files
-        src_files=os.listdir(m_baseDir)
+        src_files=os.listdir(self.baseDir)
         for file_name in src_files:
-            src_path = os.path.join(m_baseDir,file_name)
-            dest_path=os.path.join(bakDirPath,file_name)
-            if os.path.isfile(src_path) and file_name.find(g_const_Stamp_imgFileSufix)>1:
+            src_path = self.baseDir+"/"+file_name
+            dest_path=bakDirPath+"/"+file_name
+            if os.path.isfile(src_path) and file_name.find(g_stamp.imgFileSufix)>1:
                 shutil.copyfile(src_path,dest_path)
 
-    def isNonOverlap(imgDim, s_sigKey, s_bakcandKey):
+    def isInSignalArc(self, s_sigKey):
+        ang=s_sigKey[1]
+        isInArc=False
+        if ang>=self.ang_min and ang<=self.ang_max:
+            isInArc=True
+        return isInArc
+
+    def isNonOverlap(self,imgDim, s_sigKey, s_bakcandKey):
         deltaAng_good=True
         deltaAng=abs(s_sigKey[1]-s_bakcandKey[1])
-        if deltaAng<m_ang_minDelta:
+        if deltaAng<self.ang_minDelta:
             deltaAng_good=False
+        #calculate R diff
+        if(s_sigKey[6]<=0.0 or s_bakcandKey[6]<=0.0):#flats
+            return deltaAng_good
         invRDelta_good=True
-        sigRNorm=s_sigKey[6]/imgDim
-        bakRNorm=s_bakcandKey[6]/imgDim
-        if(sigRNorm<=0.0 or bakRNorm<=0.0):
+        inv_sigRNorm=imgDim/s_sigKey[6]
+        inv_bakRNorm=imgDim/s_bakcandKey[6]
+        if(inv_sigRNorm<=0.0 or inv_bakRNorm<=0.0):
             return False
-        invRDelta = abs(sigRNorm-bakRNorm)
-        if(invRDelta<m_invR_minDelta):
+        invRDelta = abs(inv_sigRNorm-inv_bakRNorm)/4.0
+        if(invRDelta<self.invR_minDelta):
             invRDelta_good=False
-        return deltaAng_good or invRDelta_good
+        #check for opening ang
+        deltaOpeningAng_good=True
+        deltaOpeningAng = abs(s_sigKey[7]-s_bakcandKey[7])
+        if(deltaOpeningAng<self.openingAng_minDelta):
+            deltaOpeningAng_good=False
+        return deltaAng_good or invRDelta_good or deltaOpeningAng_good
 
     #NNet dir doesn't at this stage contain any img files, however it does contain the
     #key files that point to each sig in the Stamp dir (_sig file) and bak img in the Bak dir (_bak file)
@@ -98,27 +112,30 @@ class StampPreFeed:
     #
     #in this instance only one signal will be used from the signal dir and the rest of the non-overlaping img
     #files will become the background
-    def genNNet(nnet_num, imgDim, s_masterKey, s_sigkey, arr_allKeys):
-        NNetDirPath=m_baseDir+"/"+m_nnetDir+ParseLn.numberToString(nnet_num)
+    def genNNet(self,nnet_num, imgDim, s_masterKey, s_sigkey, arr_allKeys):
+        NNetDirPath=self.baseDir+"/"+self.nnetDir+ParseLn.numberToString(nnet_num)
         os.mkdir(NNetDirPath)
 
         len_key=len(s_sigkey)
         FinSigKeys_arr=[[0]*len_key]
         for el_i in range(len_key):
-            FinSigKeys[0][el_i]=s_sigkey[el_i]
-        s_sigKey[2]=1.0
+            FinSigKeys_arr[0][el_i]=s_sigkey[el_i]
+        FinSigKeys_arr[0][2]=1.0
 
         FinBakKeys_arr=[]
-        for s_bakKey in arr_allKeys:
-            if isNonOverlap(imgDim, s_sigKey, s_bakKey):
-                s_bakKey[2]=-1.0
-                FinBakKeys_arr.append(s_bakKey)
+        rejKeys_arr=[]
+        for s_bakkey in arr_allKeys:
+            if self.isNonOverlap(imgDim, s_sigkey, s_bakkey):
+                s_bakkey[2]=-1.0
+                FinBakKeys_arr.append(s_bakkey)
+            else:
+                rejKeys_arr.append(s_bakkey)
 
         #write the keys files
         N_sig=len(FinSigKeys_arr)
         N_bak=len(FinBakKeys_arr)
-        sigFilePath = NNetDirPath+"/"+g_const_Stamp_keyFile+m_sigSufix+g_const_Stamp_keySufix
-        bakFilePath = NNetDirPath+"/"+g_const_Stamp_keyFile+m_bakSufix+g_const_Stamp_keySufix
+        sigFilePath = NNetDirPath+"/"+g_stamp.keyFile+self.sigSufix+g_stamp.keySufix
+        bakFilePath = NNetDirPath+"/"+g_stamp.keyFile+self.bakSufix+g_stamp.keySufix
         ParseLn.writeLineS(sigFilePath,FinSigKeys_arr)
         ParseLn.writeLineS(bakFilePath,FinBakKeys_arr)
 
@@ -126,24 +143,29 @@ class StampPreFeed:
         s_masterKey[3]=N_sig+N_bak
         s_masterKey[4]=N_sig
         s_masterKey[5]=N_bak
-        masterFilePath = NNetDirPath+"/"+g_const_Stamp_masterFile+g_const_Stamp_keySufix
+        masterFilePath = NNetDirPath+"/"+g_stamp.masterFile+g_stamp.keySufix
         ParseLn.writeLine(masterFilePath,s_masterKey)
 
         #now make the unfilled Sig and Bak dirs that are under the NNet## dir
-        NNetDirSigPath = NNetDirPath + "/" + m_sigDir
-        NNetDirBakPath = NNetDirPath + "/" + m_bakDir
+        NNetDirSigPath = NNetDirPath + "/" + self.sigDir
+        NNetDirBakPath = NNetDirPath + "/" + self.bakDir
         os.mkdir(NNetDirSigPath)
         os.mkdir(NNetDirBakPath)
 
 
-    def genNNets(imgDim, s_masterKey):
-        keysFilePath=m_baseDir+"/"+g_const_Stamp_keyFile+g_const_Stamp_keySufix
-        arr_sigKeys = ParseLn.readLines(keysFilePath)
-        if(len(arr_sigKeys<1)):
+    def genNNets(self, imgDim, s_masterKey):
+        keysFilePath=self.baseDir+"/"+g_stamp.keyFile+g_stamp.keySufix
+        arr_allKeys = ParseLn.readLines(keysFilePath)
+        if(len(arr_allKeys)<1):
             return False
-        for s_sigKey in arr_sigKeys:
-            nnetNum=s_sigKey[0]
-            genNNet(nnetNum,imgDim,s_masterKey,s_sigKey,arr_sigKeys)
+        print("Generating preFeed NNet keys")
+        print("<",end="")
+        for s_sigKey in arr_allKeys:
+            nnetNum=int(s_sigKey[0])
+            if (self.isInSignalArc(s_sigKey)):
+                self.genNNet(nnetNum,imgDim,s_masterKey,s_sigKey,arr_allKeys)
+                print("*",end="")
+        print(">")
         return True
     
 

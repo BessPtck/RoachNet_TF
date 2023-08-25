@@ -15,7 +15,7 @@ class StampGen:
     #########
     #stampsKey variables
     #s_stampsKey=[r,#0 scale of small r
-    #             D,#1 dim of the full size of the stamp 
+    #             D,#1 dim of the full size of the stamp eye hexes
     #             maxDim, #2 max size of image, used when image is slid by offset to make sure image is still large enough to account for slide
     #             N,# 3
     #             N_sig,# 4
@@ -53,7 +53,8 @@ class StampGen:
                  scale_r,
                  openingAngDivisisor=6.0,
                  radCmul=2.0,#factor by with the radius increases per stamp
-                 numAngDiv=12.0,
+                 numAngDiv=36.0, #12.0 for 2 pi total span
+                 angSpan_fac=2.0, #up to 2 angSpan_fac * pi is the total range of angles that AngDiv divides
                  numCircleRadii=7.0,
                  minCircleRadSF=2.0,
                  maxFinalOpeningAng=3.1,
@@ -80,7 +81,7 @@ class StampGen:
         #calculating number of stamps, dangs and ansgs
         if(self.numAngDiv<=0.0):
             return
-        self.DAng=2.0*math.pi/self.numAngDiv
+        self.DAng=angSpan_fac*math.pi/self.numAngDiv
         self.n_ang = math.floor(self.numAngDiv)
         self.max_total_num_of_stamps=self.n_ang*self.numCircleRadii
         #for each ang/radii combo there is at most a solid stamp and then a series of closing angle stamps
@@ -148,11 +149,12 @@ class StampGen:
             #final image the straight half
             new_img2=self.init_image()
             s_Key2=[0.0]*g_stamp.s_key_len
-            new_img2=self.stampHalfImg(new_img2,s_Key2, center) #uses the ang set in stampImg
+            new_img2=self.stampHalfImg(new_img2,s_Key2, cur_ang) #uses the ang set in stampImg
             imgArr.append(new_img2)
             Keys.append(s_Key2)
             #update and continue loop
             cur_ang+=self.DAng
+            print("Stamped image number: ", len(Keys))
         return imgArr
 
     def stampInvImages(self, imgArr, Keys):
@@ -169,6 +171,7 @@ class StampGen:
             s_Key[8]=1.0
             imgArr.append(new_img)
             Keys.append(s_Key)
+            print("Stamped inv image number: ", i_stamp)
 
     def stampImg(self,
                  img,#image obj passed to be modified
@@ -188,9 +191,10 @@ class StampGen:
         self.stampN+=1
         return img
 
-    def stampHalfImg(self, img, Key, center):
+    def stampHalfImg(self, img, Key, ang):
         self.renderHalfImg(img)
         Key[0]=self.stampN
+        Key[1]=ang
         self.stampN+=1
         return img
 
